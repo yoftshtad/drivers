@@ -20,7 +20,13 @@ export function getUsers(): AdminUser[] {
   if (typeof window === 'undefined') return []
   try {
     const raw = window.localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as AdminUser[]) : []
+    if (!raw) return []
+    const users = JSON.parse(raw) as AdminUser[]
+    const uniqueUsers = new Map<string, AdminUser>()
+    for (const user of users) {
+      if (!uniqueUsers.has(user.id)) uniqueUsers.set(user.id, user)
+    }
+    return Array.from(uniqueUsers.values())
   } catch {
     return []
   }

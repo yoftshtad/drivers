@@ -74,7 +74,7 @@ export function signIn(identifier: string, password: string): SessionUser {
 export function signUp(name: string, identifier: string): SessionUser {
   const isEmail = identifier.includes('@')
   const user: SessionUser = {
-    id: 'u-student',
+    id: `u-${crypto.randomUUID()}`,
     name,
     email: isEmail ? identifier : '',
     phone: isEmail ? undefined : identifier,
