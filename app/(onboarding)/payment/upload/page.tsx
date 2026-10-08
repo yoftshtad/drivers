@@ -90,15 +90,21 @@ function UploadForm() {
       setProcessingStep('Sending screenshot to admin on Telegram…')
 
       const formData = new FormData()
-      formData.append('file', file)
+      const blob = new Blob([file], { type: file.type })
+      formData.append('file', blob, file.name)
       formData.append('userName', getUser()?.name ?? 'Student')
       formData.append('userEmail', getUser()?.email ?? '')
       formData.append('userPhone', getUser()?.phone ?? '')
 
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 50000)
+
       const response = await fetch('/api/telegram/screenshot', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       })
+      clearTimeout(timeout)
 
       const result = await response.json()
 
