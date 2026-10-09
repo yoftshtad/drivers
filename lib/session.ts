@@ -121,3 +121,25 @@ export function setRejectionReason(reason: string) {
 export function initials(name: string) {
   return name.split(' ').map((p) => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
 }
+
+// Fetch user access from database and sync localStorage
+export async function syncUserAccess(identifier: string): Promise<AccessState | null> {
+  if (typeof window === 'undefined') return null
+  try {
+    const isEmail = identifier.includes('@')
+    const url = isEmail 
+      ? `/api/admin/users?email=${encodeURIComponent(identifier)}`
+      : `/api/admin/users?phone=${encodeURIComponent(identifier)}`
+    const res = await fetch(url, { cache: 'no-store' })
+    if (!res.ok) return null
+    const data = await res.json()
+    const user = data.users?.[0]
+    if (user) {
+      write(ACCESS_KEY, user.access)
+      return user.access
+    }
+  } catch (e) {
+    console.error('Failed to sync user access:', e)
+  }
+  return null
+}

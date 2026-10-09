@@ -29,6 +29,7 @@ export default function AdminUsersPage() {
   const [pendingDelete, setPendingDelete] = useState<AdminUser | null>(null)
   const [pendingAction, setPendingAction] = useState<{ user: AdminUser; action: 'approve' | 'reject' } | null>(null)
   const [deletedName, setDeletedName] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
 
   const filtered = useMemo(
     () =>
@@ -48,10 +49,17 @@ export default function AdminUsersPage() {
     setTimeout(() => setDeletedName(null), 4000)
   }
 
-  const confirmAction = () => {
+  const confirmAction = async () => {
     if (!pendingAction) return
-    updateUserAccess(pendingAction.user.id, pendingAction.action === 'approve' ? 'active' : 'rejected')
-    setPendingAction(null)
+    setActionLoading(true)
+    try {
+      await updateUserAccess(pendingAction.user.id, pendingAction.action === 'approve' ? 'active' : 'rejected')
+      setPendingAction(null)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update user')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   return (
@@ -170,6 +178,7 @@ export default function AdminUsersPage() {
           : `Deny access for ${pendingAction?.user.email ?? 'this user'}? They will be notified.`}
         confirmLabel={pendingAction?.action === 'approve' ? 'Approve' : 'Reject'}
         destructive={pendingAction?.action === 'reject'}
+        loading={actionLoading}
         onConfirm={confirmAction}
         onCancel={() => setPendingAction(null)}
       />

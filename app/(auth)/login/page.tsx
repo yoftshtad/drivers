@@ -10,7 +10,7 @@ import { Eye, EyeOff, Info, Mail, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { signIn } from '@/lib/session'
+import { signIn, syncUserAccess } from '@/lib/session'
 import { getAccessState } from '@/lib/access'
 
 const emailOrPhone = z.string().min(1, 'Email or phone is required').refine(
@@ -35,13 +35,15 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { identifier: '', password: '' } })
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
     setServerError(null)
     const user = signIn(values.identifier, values.password)
     if (user.role === 'admin') {
       router.push('/admin')
       return
     }
+    // Sync access state from database
+    await syncUserAccess(values.identifier)
     router.push(getAccessState() === 'active' ? '/dashboard' : '/payment')
   }
 

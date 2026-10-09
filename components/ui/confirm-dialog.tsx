@@ -9,11 +9,12 @@ interface ConfirmDialogProps {
   message: string
   confirmLabel?: string
   destructive?: boolean
+  loading?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
 
-export function ConfirmDialog({ open, title, message, confirmLabel = 'Delete', destructive = true, onConfirm, onCancel }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, message, confirmLabel = 'Delete', destructive = true, loading = false, onConfirm, onCancel }: ConfirmDialogProps) {
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-5" role="dialog" aria-modal="true" aria-label={title}>
@@ -28,14 +29,15 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Delete', d
           </div>
         </div>
         <div className="mt-5 flex gap-2.5">
-          <Button variant="outline" className="h-10 flex-1 text-sm" onClick={onCancel}>
+          <Button variant="outline" className="h-10 flex-1 text-sm" onClick={onCancel} disabled={loading}>
             Cancel
           </Button>
           <Button
             className={`h-10 flex-1 text-sm ${destructive ? 'bg-red-600 text-white hover:bg-red-700' : ''}`}
             onClick={onConfirm}
+            disabled={loading}
           >
-            {confirmLabel}
+            {loading ? 'Processing…' : confirmLabel}
           </Button>
         </div>
       </div>

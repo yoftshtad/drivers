@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUsers, createUser, updateUserAccess, deleteUser } from '@/lib/db/users'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const email = searchParams.get('email')
+    const phone = searchParams.get('phone')
+    
+    if (email) {
+      const user = await getUserByEmail(email)
+      return NextResponse.json({ users: user ? [user] : [] })
+    }
+    if (phone) {
+      const users = await getUsers()
+      const user = users.find(u => u.phone === phone)
+      return NextResponse.json({ users: user ? [user] : [] })
+    }
+    
     const users = await getUsers()
     return NextResponse.json({ users })
   } catch (e) {

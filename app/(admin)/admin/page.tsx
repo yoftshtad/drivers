@@ -29,6 +29,7 @@ export default function AdminDashboardPage() {
     : 0
 
   const pendingPaymentList = payments.filter(p => p.status === 'pending')
+  const pendingUserList = users.filter(u => u.access === 'pending')
 
   const scoreData = [
     { module: 'Traffic Signs', avg: 0 },
@@ -37,9 +38,12 @@ export default function AdminDashboardPage() {
     { module: 'Vehicle Knowledge', avg: 0 },
   ]
 
+  const pendingUserCount = users.filter(u => u.access === 'pending').length
+  const totalPending = pendingPayments + pendingUserCount
+
   const stats = [
     { icon: Users, label: 'Total students', value: totalStudents, delta: `${activeUsers} active`, tone: 'bg-blue-50 text-blue-600' },
-    { icon: CircleAlert, label: 'Pending payments', value: pendingPayments, delta: pendingPayments > 0 ? 'Needs review' : 'All clear', tone: 'bg-amber-50 text-amber-600' },
+    { icon: CircleAlert, label: 'Pending review', value: totalPending, delta: totalPending > 0 ? 'Needs review' : 'All clear', tone: 'bg-amber-50 text-amber-600' },
     { icon: ClipboardCheck, label: 'Active access', value: activeUsers, delta: totalStudents > 0 ? `${Math.round((activeUsers / totalStudents) * 100)}% activation` : '0% activation', tone: 'bg-green-50 text-green-600' },
     { icon: ClipboardCheck, label: 'Total attempts', value: totalAttempts, delta: `${totalQuestionsAnswered} questions answered`, tone: 'bg-purple-50 text-purple-600' },
   ]
@@ -69,7 +73,7 @@ export default function AdminDashboardPage() {
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <section className="rounded-2xl border border-border/70 bg-card shadow-[0_1px_3px_rgb(16_24_40/0.05)]">
           <div className="flex items-center justify-between p-5 pb-2">
-            <h2 className="text-base font-extrabold">Payments awaiting verification</h2>
+            <h2 className="text-base font-extrabold">Awaiting verification</h2>
             <Link href="/admin/payments" className="text-sm font-semibold text-primary hover:underline">
               View all
             </Link>
@@ -84,26 +88,45 @@ export default function AdminDashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pendingPaymentList.length > 0 ? (
-                pendingPaymentList.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="pl-5">
-                      <p className="font-semibold">{p.userName}</p>
-                      <p className="text-xs text-muted-foreground">{p.userEmail || p.userPhone || '—'}</p>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{p.submittedAt}</TableCell>
-                    <TableCell className="max-w-40 truncate text-muted-foreground">{p.receiptName}</TableCell>
-                    <TableCell className="pr-5 text-right">
-                      <a href={`/admin/payments/${p.id}`} className="text-sm font-semibold text-primary hover:underline">
-                        Review
-                      </a>
-                    </TableCell>
-                  </TableRow>
-                ))
+              {pendingPaymentList.length > 0 || pendingUserList.length > 0 ? (
+                <>
+                  {pendingPaymentList.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="pl-5">
+                        <p className="font-semibold">{p.userName}</p>
+                        <p className="text-xs text-muted-foreground">{p.userEmail || p.userPhone || '—'}</p>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{p.submittedAt}</TableCell>
+                      <TableCell className="max-w-40 truncate text-muted-foreground">{p.receiptName}</TableCell>
+                      <TableCell className="pr-5 text-right">
+                        <a href={`/admin/payments/${p.id}`} className="text-sm font-semibold text-primary hover:underline">
+                          Review
+                        </a>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {pendingUserList.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell className="pl-5">
+                        <p className="font-semibold">{u.name}</p>
+                        <p className="text-xs text-muted-foreground">{u.email || u.phone || '—'}</p>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{u.joined}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <span className="px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700">Account pending</span>
+                      </TableCell>
+                      <TableCell className="pr-5 text-right">
+                        <a href={`/admin/users`} className="text-sm font-semibold text-primary hover:underline">
+                          Approve
+                        </a>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
               ) : (
                 <TableRow>
                   <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
-                    No pending payments
+                    No pending payments or accounts
                   </TableCell>
                 </TableRow>
               )}
