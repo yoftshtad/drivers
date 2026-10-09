@@ -71,7 +71,7 @@ export function signIn(identifier: string, password: string): SessionUser {
   return user
 }
 
-export function signUp(name: string, identifier: string): SessionUser {
+export async function signUp(name: string, identifier: string): Promise<SessionUser> {
   const isEmail = identifier.includes('@')
   const user: SessionUser = {
     id: `u-${crypto.randomUUID()}`,
@@ -83,9 +83,13 @@ export function signUp(name: string, identifier: string): SessionUser {
   }
   write(USER_KEY, user)
   setAccessState('pending')
-  // Also create in admin users store
+  // Also create in admin users store (database)
   if (typeof window !== 'undefined') {
-    createUser({ id: user.id, name, email: user.email, phone: user.phone })
+    try {
+      await createUser({ id: user.id, name, email: user.email, phone: user.phone })
+    } catch (e) {
+      console.error('Failed to create user in database:', e)
+    }
   }
   return user
 }

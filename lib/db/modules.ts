@@ -16,7 +16,7 @@ function rowToModule(row: any): LearningModule {
 }
 
 export async function getModules(): Promise<LearningModule[]> {
-  const rows = await execute<any>('SELECT * FROM modules ORDER BY "order"')
+  const rows = await execute<any>('SELECT * FROM modules ORDER BY `order`')
   return rows.map(rowToModule)
 }
 
@@ -28,7 +28,7 @@ export async function getModule(id: string): Promise<LearningModule | undefined>
 export async function createModule(input: { title: string; description: string; color: ModuleColor; order: number }): Promise<LearningModule> {
   const id = `mod-${Date.now().toString(36)}`
   await executeRun(
-    `INSERT INTO modules (id, "order", title, description, color, progress, question_count, lessons, content)
+    `INSERT INTO modules (id, \`order\`, title, description, color, progress, question_count, lessons, content)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, input.order, input.title, input.description, input.color, 0, 0, '[]', null]
   )
@@ -38,7 +38,7 @@ export async function createModule(input: { title: string; description: string; 
 export async function updateModule(id: string, patch: Partial<LearningModule>): Promise<void> {
   const sets: string[] = []
   const args: any[] = []
-  if (patch.order !== undefined) { sets.push('"order" = ?'); args.push(patch.order) }
+  if (patch.order !== undefined) { sets.push('`order` = ?'); args.push(patch.order) }
   if (patch.title !== undefined) { sets.push('title = ?'); args.push(patch.title) }
   if (patch.description !== undefined) { sets.push('description = ?'); args.push(patch.description) }
   if (patch.color !== undefined) { sets.push('color = ?'); args.push(patch.color) }
@@ -57,7 +57,7 @@ export async function deleteModule(id: string): Promise<void> {
 
 export async function replaceModules(list: LearningModule[]): Promise<void> {
   await db.transaction(list.map(m => ({
-    sql: `INSERT OR REPLACE INTO modules (id, "order", title, description, color, progress, question_count, lessons, content)
+    sql: `INSERT OR REPLACE INTO modules (id, \`order\`, title, description, color, progress, question_count, lessons, content)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [m.id, m.order, m.title, m.description, m.color, m.progress, m.questionCount, JSON.stringify(m.lessons), m.content ? JSON.stringify(m.content) : null]
   })))

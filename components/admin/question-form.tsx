@@ -28,7 +28,7 @@ export function QuestionForm({
 }: {
   initial?: QuestionFormValues
   submitLabel: string
-  onSubmit: (values: QuestionFormValues) => void
+  onSubmit: (values: QuestionFormValues) => Promise<void> | void
 }) {
   const router = useRouter()
   const { modules } = useModules()
@@ -36,6 +36,7 @@ export function QuestionForm({
     initial ?? { moduleId: modules[0]?.id ?? 'traffic-signs', type: 'single', text: '', options: ['', '', '', ''], correct: 0, difficulty: 'easy', explanation: '', image: '' },
   )
   const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const set = <K extends keyof QuestionFormValues>(key: K, value: QuestionFormValues[K]) => setValues((v) => ({ ...v, [key]: value }))
 
@@ -43,15 +44,22 @@ export function QuestionForm({
     setValues((v) => ({ ...v, options: v.options.map((o, oi) => (oi === i ? value : o)) }))
   }
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (values.text.trim().length < 10) return setError('Question text must be at least 10 characters.')
     if (values.options.filter((o) => o.trim()).length < 2) return setError('Provide at least 2 non-empty options.')
     if (!values.options[values.correct]?.trim()) return setError('The marked correct answer must be a non-empty option.')
     if (values.explanation.trim().length < 10) return setError('An explanation of at least 10 characters is required.')
     setError(null)
-    onSubmit(values)
-    router.push('/admin/questions')
+    setSubmitting(true)
+    try {
+      await onSubmit(values)
+      router.push('/admin/questions')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -123,10 +131,10 @@ export function QuestionForm({
 
       {error && <p className="rounded-lg bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive">{error}</p>}
       <div className="flex gap-2.5">
-        <Button type="submit" className="h-10 px-5 text-sm">
-          {submitLabel}
+        <Button type="submit" disabled={submitting} className="h-10 px-5 text-sm">
+          {submitting ? 'Creating…' : submitLabel}
         </Button>
-        <Button type="button" variant="outline" className="h-10 px-5 text-sm" onClick={() => router.push('/admin/questions')}>
+        <Button type="button" variant="outline" disabled={submitting} className="h-10 px-5 text-sm" onClick={() => router.push('/admin/questions')}>
           Cancel
         </Button>
       </div>

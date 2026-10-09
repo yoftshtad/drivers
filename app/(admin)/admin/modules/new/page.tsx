@@ -15,8 +15,8 @@ export default function NewModulePage() {
       <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-[0_1px_3px_rgb(16_24_40/0.05)]">
         <ModuleForm
           submitLabel="Create module"
-          onSubmit={(values) => {
-            const mod = createModule(values)
+          onSubmit={async (values) => {
+            const mod = await createModule(values)
             return `/admin/modules/${mod.id}/edit`
           }}
         />
