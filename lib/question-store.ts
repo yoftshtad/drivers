@@ -6,66 +6,82 @@ import { questionBank as seedQuestions } from './mock-data'
 
 export { type Question }
 
-const KEY = 'dp.questions'
-const EVENT = 'dp.questions-change'
+async function fetchQuestions(moduleId?: string): Promise<Question[]> {
+  const url = moduleId ? `/api/admin/questions?moduleId=${moduleId}` : '/api/admin/questions'
+  const res = await fetch(url, { cache: 'no-store' })
+  if (!res.ok) return seedQuestions
+  const data = await res.json()
+  return data.questions ?? seedQuestions
+}
 
-export function getQuestions(): Question[] {
+export async function getQuestions(): Promise<Question[]> {
   if (typeof window === 'undefined') return seedQuestions
-  try {
-    const raw = window.localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as Question[]) : seedQuestions
-  } catch {
-    return seedQuestions
-  }
+  return fetchQuestions()
 }
 
-function save(list: Question[]) {
-  window.localStorage.setItem(KEY, JSON.stringify(list))
-  window.dispatchEvent(new Event(EVENT))
+export async function getQuestionsFor(moduleId: string): Promise<Question[]> {
+  if (typeof window === 'undefined') return seedQuestions.filter(q => q.moduleId === moduleId)
+  return fetchQuestions(moduleId)
 }
 
-export function getQuestionsFor(moduleId: string): Question[] {
-  return getQuestions().filter((q) => q.moduleId === moduleId)
+export async function getQuestion(id: string): Promise<Question | undefined> {
+  const questions = await getQuestions()
+  return questions.find(q => q.id === id)
 }
 
-export function getQuestion(id: string): Question | undefined {
-  return getQuestions().find((q) => q.id === id)
+export async function createQuestion(input: Omit<Question, 'id'>): Promise<Question> {
+  const res = await fetch('/api/admin/questions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error('Failed to create question')
+  const data = await res.json()
+  return data.question
 }
 
-export function createQuestion(input: Omit<Question, 'id'>): Question {
-  const q: Question = { ...input, id: `q-${Date.now().toString(36)}` }
-  save([...getQuestions(), q])
-  return q
+export async function updateQuestion(id: string, patch: Partial<Question>): Promise<void> {
+  const res = await fetch(`/api/admin/questions/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!res.ok) throw new Error('Failed to update question')
 }
 
-export function updateQuestion(id: string, patch: Partial<Question>) {
-  save(getQuestions().map((q) => (q.id === id ? { ...q, ...patch } : q)))
+export async function deleteQuestion(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/questions/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete question')
 }
 
-export function deleteQuestion(id: string) {
-  save(getQuestions().filter((q) => q.id !== id))
-}
-
-export function deleteQuestionsForModule(moduleId: string) {
-  save(getQuestions().filter((q) => q.moduleId !== moduleId))
+export async function deleteQuestionsForModule(moduleId: string): Promise<void> {
+  const res = await fetch(`/api/admin/questions?moduleId=${moduleId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete questions for module')
 }
 
 export function subscribeQuestions(listener: () => void) {
   if (typeof window === 'undefined') return () => {}
-  window.addEventListener(EVENT, listener)
-  window.addEventListener('storage', listener)
-  return () => {
-    window.removeEventListener(EVENT, listener)
-    window.removeEventListener('storage', listener)
-  }
+  window.addEventListener('dp.questions-change', listener)
+  return () => window.removeEventListener('dp.questions-change', listener)
 }
 
 export function useQuestions(): Question[] {
   const [items, setItems] = useState<Question[]>(seedQuestions)
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    const sync = () => setItems(getQuestions())
-    sync()
-    return subscribeQuestions(sync)
+    let mounted = true
+    const load = async () => {
+      const data = await fetchQuestions()
+      if (mounted) {
+        setItems(data)
+        setLoading(false)
+      }
+    }
+    load()
+    const unsub = subscribeQuestions(() => load())
+    return () => { mounted = false; unsub() }
   }, [])
+
   return items
 }

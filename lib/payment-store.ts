@@ -3,54 +3,66 @@
 import { useEffect, useState } from 'react'
 import type { PaymentRecord } from './types'
 
-const KEY = 'dp.payments'
-const EVENT = 'dp.payments-change'
+async function fetchPayments(): Promise<PaymentRecord[]> {
+  const res = await fetch('/api/admin/payments', { cache: 'no-store' })
+  if (!res.ok) return []
+  const data = await res.json()
+  return data.payments ?? []
+}
 
-export function getPayments(): PaymentRecord[] {
+export async function getPayments(): Promise<PaymentRecord[]> {
   if (typeof window === 'undefined') return []
-  try {
-    const raw = window.localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as PaymentRecord[]) : []
-  } catch {
-    return []
-  }
+  return fetchPayments()
 }
 
-export function createPayment(payment: Omit<PaymentRecord, 'id'> & { id?: string }): PaymentRecord {
-  if (typeof window === 'undefined') return null as any
-  const newPayment: PaymentRecord = {
-    ...payment,
-    id: payment.id ?? `pay-${Date.now().toString(36)}`,
-  }
-  const payments = getPayments()
-  window.localStorage.setItem(KEY, JSON.stringify([newPayment, ...payments]))
-  window.dispatchEvent(new Event(EVENT))
-  return newPayment
+export async function createPayment(payment: Omit<PaymentRecord, 'id'> & { id?: string }): Promise<PaymentRecord> {
+  const res = await fetch('/api/admin/payments', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payment),
+  })
+  if (!res.ok) throw new Error('Failed to create payment')
+  const data = await res.json()
+  return data.payment
 }
 
-export function updatePayment(id: string, status: PaymentRecord['status'], reason?: string) {
-  if (typeof window === 'undefined') return
-  const payments = getPayments().map((p) => (p.id === id ? { ...p, status, reason } : p))
-  window.localStorage.setItem(KEY, JSON.stringify(payments))
-  window.dispatchEvent(new Event(EVENT))
+export async function updatePayment(id: string, status: PaymentRecord['status'], reason?: string): Promise<void> {
+  const res = await fetch(`/api/admin/payments/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, reason }),
+  })
+  if (!res.ok) throw new Error('Failed to update payment')
+}
+
+export async function deletePayment(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/payments/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete payment')
 }
 
 export function subscribePayments(listener: () => void) {
   if (typeof window === 'undefined') return () => {}
-  window.addEventListener(EVENT, listener)
-  window.addEventListener('storage', listener)
-  return () => {
-    window.removeEventListener(EVENT, listener)
-    window.removeEventListener('storage', listener)
-  }
+  window.addEventListener('dp.payments-change', listener)
+  return () => window.removeEventListener('dp.payments-change', listener)
 }
 
 export function usePayments(): PaymentRecord[] {
   const [payments, setPayments] = useState<PaymentRecord[]>([])
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    const sync = () => setPayments(getPayments())
-    sync()
-    return subscribePayments(sync)
+    let mounted = true
+    const load = async () => {
+      const data = await fetchPayments()
+      if (mounted) {
+        setPayments(data)
+        setLoading(false)
+      }
+    }
+    load()
+    const unsub = subscribePayments(() => load())
+    return () => { mounted = false; unsub() }
   }, [])
+
   return payments
 }

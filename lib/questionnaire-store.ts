@@ -6,62 +6,71 @@ import { mockTests, questionnaires as seedQuestionnaires } from './mock-data'
 
 export { type Questionnaire }
 
-const KEY = 'dp.questionnaires'
-const EVENT = 'dp.questionnaires-change'
-
 function seed(): Questionnaire[] {
   return [...seedQuestionnaires, ...mockTests]
 }
 
-export function getQuestionnaires(): Questionnaire[] {
+async function fetchQuestionnaires(): Promise<Questionnaire[]> {
+  const res = await fetch('/api/admin/questionnaires', { cache: 'no-store' })
+  if (!res.ok) return seed()
+  const data = await res.json()
+  return data.questionnaires ?? seed()
+}
+
+export async function getQuestionnaires(): Promise<Questionnaire[]> {
   if (typeof window === 'undefined') return seed()
-  try {
-    const raw = window.localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as Questionnaire[]) : seed()
-  } catch {
-    return seed()
-  }
+  return fetchQuestionnaires()
 }
 
-function save(list: Questionnaire[]) {
-  window.localStorage.setItem(KEY, JSON.stringify(list))
-  window.dispatchEvent(new Event(EVENT))
+export async function getQuestionnaire(id: string): Promise<Questionnaire | undefined> {
+  const questionnaires = await getQuestionnaires()
+  return questionnaires.find(q => q.id === id)
 }
 
-export function getQuestionnaire(id: string): Questionnaire | undefined {
-  return getQuestionnaires().find((q) => q.id === id)
+export async function createQuestionnaire(input: Omit<Questionnaire, 'id'>): Promise<Questionnaire> {
+  const res = await fetch('/api/admin/questionnaires', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error('Failed to create questionnaire')
+  const data = await res.json()
+  return data.questionnaire
 }
 
-export function createQuestionnaire(input: Omit<Questionnaire, 'id'>): Questionnaire {
-  const q: Questionnaire = { ...input, id: `qnr-${Date.now().toString(36)}` }
-  save([...getQuestionnaires(), q])
-  return q
+export async function deleteQuestionnaire(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/questionnaires/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete questionnaire')
 }
 
-export function deleteQuestionnaire(id: string) {
-  save(getQuestionnaires().filter((q) => q.id !== id))
-}
-
-export function deleteQuestionnairesForModule(moduleId: string) {
-  save(getQuestionnaires().filter((q) => q.moduleId !== moduleId))
+export async function deleteQuestionnairesForModule(moduleId: string): Promise<void> {
+  const res = await fetch(`/api/admin/questionnaires?moduleId=${moduleId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete questionnaires for module')
 }
 
 export function subscribeQuestionnaires(listener: () => void) {
   if (typeof window === 'undefined') return () => {}
-  window.addEventListener(EVENT, listener)
-  window.addEventListener('storage', listener)
-  return () => {
-    window.removeEventListener(EVENT, listener)
-    window.removeEventListener('storage', listener)
-  }
+  window.addEventListener('dp.questionnaires-change', listener)
+  return () => window.removeEventListener('dp.questionnaires-change', listener)
 }
 
 export function useQuestionnaires(): Questionnaire[] {
   const [items, setItems] = useState<Questionnaire[]>(seed)
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    const sync = () => setItems(getQuestionnaires())
-    sync()
-    return subscribeQuestionnaires(sync)
+    let mounted = true
+    const load = async () => {
+      const data = await fetchQuestionnaires()
+      if (mounted) {
+        setItems(data)
+        setLoading(false)
+      }
+    }
+    load()
+    const unsub = subscribeQuestionnaires(() => load())
+    return () => { mounted = false; unsub() }
   }, [])
+
   return items
 }

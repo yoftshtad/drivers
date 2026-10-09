@@ -13,71 +13,66 @@ export interface AdminUser {
   attempts: number
 }
 
-const KEY = 'dp.users'
-const EVENT = 'dp.users-change'
+async function fetchUsers(): Promise<AdminUser[]> {
+  const res = await fetch('/api/admin/users', { cache: 'no-store' })
+  if (!res.ok) return []
+  const data = await res.json()
+  return data.users ?? []
+}
 
-export function getUsers(): AdminUser[] {
+export async function getUsers(): Promise<AdminUser[]> {
   if (typeof window === 'undefined') return []
-  try {
-    const raw = window.localStorage.getItem(KEY)
-    if (!raw) return []
-    const users = JSON.parse(raw) as AdminUser[]
-    const uniqueUsers = new Map<string, AdminUser>()
-    for (const user of users) {
-      if (!uniqueUsers.has(user.id)) uniqueUsers.set(user.id, user)
-    }
-    return Array.from(uniqueUsers.values())
-  } catch {
-    return []
-  }
+  return fetchUsers()
 }
 
-export function createUser(input: { id: string; name: string; email: string; phone?: string }): AdminUser {
-  if (typeof window === 'undefined') return null as any
-  const user: AdminUser = {
-    id: input.id,
-    name: input.name,
-    email: input.email,
-    phone: input.phone,
-    access: 'pending',
-    joined: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    attempts: 0,
-  }
-  const users = getUsers()
-  window.localStorage.setItem(KEY, JSON.stringify([user, ...users]))
-  window.dispatchEvent(new Event(EVENT))
-  return user
+export async function createUser(input: { id: string; name: string; email: string; phone?: string }): Promise<AdminUser> {
+  const res = await fetch('/api/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error('Failed to create user')
+  const data = await res.json()
+  return data.user
 }
 
-export function updateUserAccess(id: string, access: AccessState) {
-  if (typeof window === 'undefined') return
-  const users = getUsers().map((u) => (u.id === id ? { ...u, access } : u))
-  window.localStorage.setItem(KEY, JSON.stringify(users))
-  window.dispatchEvent(new Event(EVENT))
+export async function updateUserAccess(id: string, access: AccessState): Promise<void> {
+  const res = await fetch(`/api/admin/users/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ access }),
+  })
+  if (!res.ok) throw new Error('Failed to update user')
 }
 
-export function deleteUser(id: string) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(KEY, JSON.stringify(getUsers().filter((u) => u.id !== id)))
-  window.dispatchEvent(new Event(EVENT))
+export async function deleteUser(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete user')
 }
 
 export function subscribeUsers(listener: () => void) {
   if (typeof window === 'undefined') return () => {}
-  window.addEventListener(EVENT, listener)
-  window.addEventListener('storage', listener)
-  return () => {
-    window.removeEventListener(EVENT, listener)
-    window.removeEventListener('storage', listener)
-  }
+  window.addEventListener('dp.users-change', listener)
+  return () => window.removeEventListener('dp.users-change', listener)
 }
 
 export function useUsers(): AdminUser[] {
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    const sync = () => setUsers(getUsers())
-    sync()
-    return subscribeUsers(sync)
+    let mounted = true
+    const load = async () => {
+      const data = await fetchUsers()
+      if (mounted) {
+        setUsers(data)
+        setLoading(false)
+      }
+    }
+    load()
+    const unsub = subscribeUsers(() => load())
+    return () => { mounted = false; unsub() }
   }, [])
+
   return users
 }

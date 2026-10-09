@@ -3,27 +3,26 @@
 import { useEffect, useState } from 'react'
 import type { AttemptRecord } from './types'
 
-const KEY = 'dp.attempts'
-
-export function getAttempts(): AttemptRecord[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = window.localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as AttemptRecord[]) : []
-  } catch {
-    return []
-  }
+async function fetchAttempts(last = false): Promise<AttemptRecord[] | AttemptRecord | null> {
+  const url = last ? '/api/student/attempts?last=true' : '/api/student/attempts'
+  const res = await fetch(url, { cache: 'no-store' })
+  if (!res.ok) return last ? null : []
+  const data = await res.json()
+  return last ? data.attempt : data.attempts
 }
 
-export function saveAttempt(record: AttemptRecord) {
-  if (typeof window === 'undefined') return
-  try {
-    const raw = window.localStorage.getItem(KEY)
-    const saved = raw ? (JSON.parse(raw) as AttemptRecord[]) : []
-    window.localStorage.setItem(KEY, JSON.stringify([record, ...saved].slice(0, 30)))
-  } catch {
-    // storage unavailable
-  }
+export async function getAttempts(): Promise<AttemptRecord[]> {
+  if (typeof window === 'undefined') return []
+  return fetchAttempts() as Promise<AttemptRecord[]>
+}
+
+export async function saveAttempt(record: AttemptRecord): Promise<void> {
+  const res = await fetch('/api/student/attempts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ attempt: record }),
+  })
+  if (!res.ok) throw new Error('Failed to save attempt')
 }
 
 export interface LastAttempt {
@@ -39,41 +38,43 @@ export interface LastAttempt {
   answers: { questionId: string; selected: number[]; correct: boolean }[]
 }
 
-const LAST_KEY = 'dp.lastAttempt'
-
-export function setLastAttempt(attempt: LastAttempt) {
-  if (typeof window === 'undefined') return
-  window.sessionStorage.setItem(LAST_KEY, JSON.stringify(attempt))
+export async function setLastAttempt(attempt: LastAttempt): Promise<void> {
+  const res = await fetch('/api/student/attempts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lastAttempt: attempt }),
+  })
+  if (!res.ok) throw new Error('Failed to save last attempt')
 }
 
-export function getLastAttempt(): LastAttempt | null {
+export async function getLastAttempt(): Promise<LastAttempt | null> {
   if (typeof window === 'undefined') return null
-  try {
-    const raw = window.sessionStorage.getItem(LAST_KEY)
-    return raw ? (JSON.parse(raw) as LastAttempt) : null
-  } catch {
-    return null
-  }
-}
-
-export function useAttempts(): AttemptRecord[] {
-  const [attempts, setAttempts] = useState<AttemptRecord[]>([])
-  useEffect(() => {
-    const sync = () => setAttempts(getAttempts())
-    sync()
-    return subscribeAttempts(sync)
-  }, [])
-  return attempts
+  return fetchAttempts(true) as Promise<LastAttempt | null>
 }
 
 export function subscribeAttempts(listener: () => void) {
   if (typeof window === 'undefined') return () => {}
-  window.addEventListener(EVENT, listener)
-  window.addEventListener('storage', listener)
-  return () => {
-    window.removeEventListener(EVENT, listener)
-    window.removeEventListener('storage', listener)
-  }
+  window.addEventListener('dp.attempts-change', listener)
+  return () => window.removeEventListener('dp.attempts-change', listener)
 }
 
-const EVENT = 'dp.attempts-change'
+export function useAttempts(): AttemptRecord[] {
+  const [attempts, setAttempts] = useState<AttemptRecord[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      const data = await fetchAttempts()
+      if (mounted) {
+        setAttempts(data as AttemptRecord[])
+        setLoading(false)
+      }
+    }
+    load()
+    const unsub = subscribeAttempts(() => load())
+    return () => { mounted = false; unsub() }
+  }, [])
+
+  return attempts
+}

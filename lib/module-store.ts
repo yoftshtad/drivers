@@ -4,69 +4,83 @@ import { useEffect, useState } from 'react'
 import type { LearningModule, ModuleColor, ModuleContent } from './types'
 import { modules as seedModules } from './mock-data'
 
-const KEY = 'dp.modules'
-const EVENT = 'dp.modules-change'
+const seed = seedModules
 
-function seed(): LearningModule[] {
-  return seedModules
+async function fetchModules(): Promise<LearningModule[]> {
+  const res = await fetch('/api/admin/modules', { cache: 'no-store' })
+  if (!res.ok) return seed
+  const data = await res.json()
+  return data.modules ?? seed
 }
 
-export function getModules(): LearningModule[] {
-  if (typeof window === 'undefined') return seed()
-  try {
-    const raw = window.localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as LearningModule[]) : seed()
-  } catch {
-    return seed()
-  }
+export async function getModules(): Promise<LearningModule[]> {
+  if (typeof window === 'undefined') return seed
+  return fetchModules()
 }
 
-function save(list: LearningModule[]) {
-  window.localStorage.setItem(KEY, JSON.stringify(list))
-  window.dispatchEvent(new Event(EVENT))
+export async function getModule(id: string): Promise<LearningModule | undefined> {
+  const modules = await getModules()
+  return modules.find(m => m.id === id)
 }
 
-export function getModule(id: string): LearningModule | undefined {
-  return getModules().find((m) => m.id === id)
+export async function createModule(input: { title: string; description: string; color: ModuleColor; order: number }): Promise<LearningModule> {
+  const res = await fetch('/api/admin/modules', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error('Failed to create module')
+  const data = await res.json()
+  return data.module
 }
 
-export function createModule(input: { title: string; description: string; color: ModuleColor; order: number }): LearningModule {
-  const mod: LearningModule = { ...input, id: `mod-${Date.now().toString(36)}`, progress: 0, questionCount: 0, lessons: [] }
-  save([...getModules(), mod])
-  return mod
+export async function updateModule(id: string, patch: Partial<LearningModule>): Promise<void> {
+  const res = await fetch(`/api/admin/modules/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!res.ok) throw new Error('Failed to update module')
 }
 
-export function updateModule(id: string, patch: Partial<LearningModule>) {
-  save(getModules().map((m) => (m.id === id ? { ...m, ...patch } : m)))
+export async function deleteModule(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/modules/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete module')
 }
 
-export function deleteModule(id: string) {
-  save(getModules().filter((m) => m.id !== id))
-}
-
-export function replaceModules(list: LearningModule[]) {
-  save(list)
+export async function replaceModules(list: LearningModule[]): Promise<void> {
+  const res = await fetch('/api/admin/modules', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(list),
+  })
+  if (!res.ok) throw new Error('Failed to replace modules')
 }
 
 export function subscribeModules(listener: () => void) {
   if (typeof window === 'undefined') return () => {}
-  window.addEventListener(EVENT, listener)
-  window.addEventListener('storage', listener)
-  return () => {
-    window.removeEventListener(EVENT, listener)
-    window.removeEventListener('storage', listener)
-  }
+  window.addEventListener('dp.modules-change', listener)
+  return () => window.removeEventListener('dp.modules-change', listener)
 }
 
 export { type LearningModule, type ModuleContent }
 export function useModules(): { modules: LearningModule[]; ready: boolean } {
   const [modules, setModules] = useState<LearningModule[]>(seed)
   const [ready, setReady] = useState(false)
+
   useEffect(() => {
-    const sync = () => setModules(getModules())
-    sync()
-    setReady(true)
-    return subscribeModules(sync)
+    let mounted = true
+    const load = async () => {
+      const data = await fetchModules()
+      if (mounted) {
+        setModules(data)
+        setReady(true)
+      }
+    }
+    load()
+    const unsub = subscribeModules(() => load())
+    return () => { mounted = false; unsub() }
   }, [])
+
   return { modules, ready }
 }

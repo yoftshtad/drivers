@@ -8,9 +8,6 @@ export interface ReadingProgress {
   lastReadAt: string
 }
 
-const KEY = 'dp.progress'
-const EVENT = 'dp.progress-change'
-
 const seedProgress: Record<string, ReadingProgress> = {
   'traffic-signs': { percent: 0, completed: false, lastReadAt: '' },
   'road-rules': { percent: 0, completed: false, lastReadAt: '' },
@@ -18,58 +15,63 @@ const seedProgress: Record<string, ReadingProgress> = {
   'vehicle-knowledge': { percent: 0, completed: false, lastReadAt: '' },
 }
 
-export function getProgressMap(): Record<string, ReadingProgress> {
+async function fetchProgress(moduleId?: string): Promise<Record<string, ReadingProgress> | ReadingProgress | undefined> {
+  const url = moduleId ? `/api/student/progress?moduleId=${moduleId}` : '/api/student/progress'
+  const res = await fetch(url, { cache: 'no-store' })
+  if (!res.ok) return moduleId ? undefined : seedProgress
+  const data = await res.json()
+  return moduleId ? data.progress : data.progress
+}
+
+export async function getProgressMap(): Promise<Record<string, ReadingProgress>> {
   if (typeof window === 'undefined') return seedProgress
-  try {
-    const raw = window.localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as Record<string, ReadingProgress>) : seedProgress
-  } catch {
-    return seedProgress
-  }
+  const data = await fetchProgress()
+  return data as Record<string, ReadingProgress> ?? seedProgress
 }
 
-export function getModuleProgress(moduleId: string): ReadingProgress | undefined {
-  return getProgressMap()[moduleId]
+export async function getModuleProgress(moduleId: string): Promise<ReadingProgress | undefined> {
+  if (typeof window === 'undefined') return seedProgress[moduleId]
+  const data = await fetchProgress(moduleId)
+  return data as ReadingProgress | undefined
 }
 
-export function saveReadingProgress(moduleId: string, percent: number, completed = false) {
-  if (typeof window === 'undefined') return
-  const map = getProgressMap()
-  const existing = map[moduleId]
-  const nextPercent = Math.max(existing?.percent ?? 0, Math.round(percent))
-  map[moduleId] = {
-    percent: Math.min(100, nextPercent),
-    completed: completed || (existing?.completed ?? false),
-    lastReadAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  }
-  window.localStorage.setItem(KEY, JSON.stringify(map))
-  window.dispatchEvent(new Event(EVENT))
+export async function saveReadingProgress(moduleId: string, percent: number, completed = false): Promise<void> {
+  const res = await fetch('/api/student/progress', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ moduleId, percent, completed }),
+  })
+  if (!res.ok) throw new Error('Failed to save progress')
 }
 
-export function deleteModuleProgress(moduleId: string) {
-  if (typeof window === 'undefined') return
-  const map = getProgressMap()
-  delete map[moduleId]
-  window.localStorage.setItem(KEY, JSON.stringify(map))
-  window.dispatchEvent(new Event(EVENT))
+export async function deleteModuleProgress(moduleId: string): Promise<void> {
+  const res = await fetch(`/api/student/progress?moduleId=${moduleId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete progress')
 }
 
 export function subscribeProgress(listener: () => void) {
   if (typeof window === 'undefined') return () => {}
-  window.addEventListener(EVENT, listener)
-  window.addEventListener('storage', listener)
-  return () => {
-    window.removeEventListener(EVENT, listener)
-    window.removeEventListener('storage', listener)
-  }
+  window.addEventListener('dp.progress-change', listener)
+  return () => window.removeEventListener('dp.progress-change', listener)
 }
 
 export function useProgressMap(): Record<string, ReadingProgress> {
   const [map, setMap] = useState<Record<string, ReadingProgress>>(seedProgress)
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    const sync = () => setMap(getProgressMap())
-    sync()
-    return subscribeProgress(sync)
+    let mounted = true
+    const load = async () => {
+      const data = await fetchProgress()
+      if (mounted) {
+        setMap(data as Record<string, ReadingProgress> ?? seedProgress)
+        setLoading(false)
+      }
+    }
+    load()
+    const unsub = subscribeProgress(() => load())
+    return () => { mounted = false; unsub() }
   }, [])
+
   return map
 }
