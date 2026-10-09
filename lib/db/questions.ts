@@ -31,10 +31,11 @@ export async function getQuestion(id: string): Promise<Question | undefined> {
 
 export async function createQuestion(input: Omit<Question, 'id'>): Promise<Question> {
   const id = `q-${Date.now().toString(36)}`
+  const now = new Date().toISOString()
   await executeRun(
-    `INSERT INTO questions (id, module_id, type, text, options, correct, difficulty, explanation)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, input.moduleId, input.type, input.text, JSON.stringify(input.options), JSON.stringify(input.correct), input.difficulty, input.explanation]
+    `INSERT INTO questions (id, module_id, type, text, options, correct, difficulty, explanation, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, input.moduleId, input.type, input.text, JSON.stringify(input.options), JSON.stringify(input.correct), input.difficulty, input.explanation, now, now]
   )
   return { ...input, id }
 }
@@ -50,6 +51,8 @@ export async function updateQuestion(id: string, patch: Partial<Question>): Prom
   if (patch.difficulty !== undefined) { sets.push('difficulty = ?'); args.push(patch.difficulty) }
   if (patch.explanation !== undefined) { sets.push('explanation = ?'); args.push(patch.explanation) }
   if (sets.length === 0) return
+  sets.push('updated_at = ?')
+  args.push(new Date().toISOString())
   args.push(id)
   await executeRun(`UPDATE questions SET ${sets.join(', ')} WHERE id = ?`, args)
 }

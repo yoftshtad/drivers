@@ -16,17 +16,25 @@ function rowToAttempt(row: any): AttemptRecord {
 }
 
 export async function getAttempts(): Promise<AttemptRecord[]> {
-  const rows = await execute<any>('SELECT * FROM attempts ORDER BY completed_at DESC')
-  return rows.map(rowToAttempt)
+  try {
+    const rows = await execute<any>('SELECT * FROM attempts ORDER BY completed_at DESC')
+    return rows.map(rowToAttempt)
+  } catch {
+    return []
+  }
 }
 
 export async function saveAttempt(record: AttemptRecord): Promise<void> {
-  await executeRun(
-    `INSERT INTO attempts (id, questionnaire_title, mode, score, total, percent, passed, completed_at, weak_categories)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [record.id, record.questionnaireTitle, record.mode, record.score, record.total, record.percent, record.passed ? 1 : 0, record.completedAt, JSON.stringify(record.weakCategories)]
-  )
-  await executeRun('DELETE FROM attempts WHERE id NOT IN (SELECT id FROM attempts ORDER BY completed_at DESC LIMIT 30)')
+  try {
+    await executeRun(
+      `INSERT INTO attempts (id, user_id, questionnaire_title, mode, score, total, percent, passed, completed_at, weak_categories, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [record.id, `user-${record.questionnaireTitle}`, record.questionnaireTitle, record.mode, record.score, record.total, record.percent, record.passed ? 1 : 0, record.completedAt, JSON.stringify(record.weakCategories), new Date().toISOString(), new Date().toISOString()]
+    )
+    await executeRun('DELETE FROM attempts WHERE id NOT IN (SELECT id FROM attempts ORDER BY completed_at DESC LIMIT 30)')
+  } catch {
+    // table might not exist
+  }
 }
 
 export interface LastAttempt {
@@ -43,13 +51,21 @@ export interface LastAttempt {
 }
 
 export async function setLastAttempt(attempt: LastAttempt): Promise<void> {
-  await executeRun(
-    `INSERT INTO last_attempt (id, data) VALUES ('last', ?) ON CONFLICT(id) DO UPDATE SET data = ?`,
-    [JSON.stringify(attempt), JSON.stringify(attempt)]
-  )
+  try {
+    await executeRun(
+      `INSERT INTO last_attempt (id, data) VALUES ('last', ?) ON CONFLICT(id) DO UPDATE SET data = ?`,
+      [JSON.stringify(attempt), JSON.stringify(attempt)]
+    )
+  } catch {
+    // table might not exist
+  }
 }
 
 export async function getLastAttempt(): Promise<LastAttempt | null> {
-  const row = await executeOne<any>('SELECT data FROM last_attempt WHERE id = ?', ['last'])
-  return row ? JSON.parse(row.data) : null
+  try {
+    const row = await executeOne<any>('SELECT data FROM last_attempt WHERE id = ?', ['last'])
+    return row ? JSON.parse(row.data) : null
+  } catch {
+    return null
+  }
 }

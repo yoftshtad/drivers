@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const payment = await createPayment(body)
     return NextResponse.json({ payment }, { status: 201 })
-  } catch (e) {
+  } catch (e: any) {
     console.error('POST /api/admin/payments error:', e)
-    return NextResponse.json({ error: 'Failed to create payment' }, { status: 500 })
+    return NextResponse.json({ error: e.message ?? 'Failed to create payment' }, { status: 500 })
   }
 }

@@ -77,7 +77,7 @@ function UploadForm() {
       createPayment({
         userName: user?.name ?? 'Student',
         userEmail: isEmail ? user?.email ?? '' : '',
-        userPhone: isEmail ? undefined : user?.email,
+        userPhone: isEmail ? undefined : user?.phone,
         plan: 'Premium Access',
         amount: 2500,
         reference,

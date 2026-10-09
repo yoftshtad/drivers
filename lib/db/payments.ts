@@ -30,29 +30,40 @@ export async function getPaymentById(id: string): Promise<PaymentRecord | null> 
 
 export async function createPayment(payment: Omit<PaymentRecord, 'id'> & { id?: string }): Promise<PaymentRecord> {
   const id = payment.id ?? `pay-${Date.now().toString(36)}`
-  await executeRun(
-    `INSERT INTO payments (id, user_name, user_email, user_phone, plan, amount, reference, status, submitted_at, reason, receipt_name, receipt_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id,
-      payment.userName,
-      payment.userEmail,
-      payment.userPhone ?? null,
-      payment.plan,
-      payment.amount,
-      payment.reference,
-      payment.status,
-      payment.submittedAt,
-      payment.reason ?? null,
-      payment.receiptName,
-      payment.receiptUrl ?? null,
-    ]
-  )
+  const now = new Date().toISOString()
+  const userId = payment.userEmail ? `user-${payment.userEmail}` : (payment.userPhone ? `user-${payment.userPhone}` : `user-unknown`)
+  try {
+    await executeRun(
+      `INSERT INTO payments (id, user_id, user_name, user_email, user_phone, plan, amount, reference, status, submitted_at, reason, receipt_name, receipt_url, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        userId,
+        payment.userName,
+        payment.userEmail,
+        payment.userPhone ?? null,
+        payment.plan,
+        payment.amount,
+        payment.reference,
+        payment.status,
+        payment.submittedAt,
+        payment.reason ?? null,
+        payment.receiptName,
+        payment.receiptUrl ?? null,
+        now,
+        now,
+      ]
+    )
+  } catch (e: any) {
+    console.error('createPayment error:', e)
+    throw e
+  }
   return { ...payment, id }
 }
 
 export async function updatePayment(id: string, status: PaymentRecord['status'], reason?: string): Promise<void> {
-  await executeRun('UPDATE payments SET status = ?, reason = ? WHERE id = ?', [status, reason ?? null, id])
+  const now = new Date().toISOString()
+  await executeRun('UPDATE payments SET status = ?, reason = ?, updated_at = ? WHERE id = ?', [status, reason ?? null, now, id])
 }
 
 export async function deletePayment(id: string): Promise<void> {
