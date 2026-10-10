@@ -1,7 +1,8 @@
 'use client'
 
 import type { AccessState, UserRole } from './types'
-import { createUser } from './users-store'
+import { authClient } from './auth-client'
+const phoneEmail = (phone: string) => `${phone.replace(/\D/g, '')}@phone.driveprep.invalid`
 
 export interface SessionUser {
   id: string
@@ -51,30 +52,34 @@ export function getUser(): SessionUser | null {
   return read<SessionUser>(USER_KEY)
 }
 
-export function signIn(identifier: string, password: string): SessionUser {
-  const normalized = identifier.trim().toLowerCase()
-  const isAdmin = normalized === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD
-  const role: UserRole = isAdmin ? 'admin' : 'student'
-  const isEmail = identifier.includes('@')
+export async function signIn(identifier: string, password: string): Promise<SessionUser> {
+  const normalized = identifier.trim()
+  const isAdmin = normalized.toLowerCase() === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD
+  if (!isAdmin) {
+    const result = await authClient.signIn.email({ email: normalized.includes('@') ? normalized : phoneEmail(normalized), password })
+    if (result.error) throw new Error('Invalid credentials')
+  }
+  const isEmail = normalized.includes('@')
   const user: SessionUser = {
-    id: role === 'admin' ? 'u-admin' : 'u-student',
-    name: isEmail ? identifier.split('@')[0]?.replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : identifier,
-    email: isEmail ? identifier : '',
-    phone: isEmail ? undefined : identifier,
-    role,
-    plan: role === 'admin' ? 'premium' : 'free',
+    id: isAdmin ? 'u-admin' : `auth-${normalized}`,
+    name: isAdmin ? 'Admin' : (isEmail ? normalized.split('@')[0] : normalized),
+    email: isEmail ? normalized : '',
+    phone: isEmail ? undefined : normalized,
+    role: isAdmin ? 'admin' : 'student',
+    plan: isAdmin ? 'premium' : 'free',
   }
   write(USER_KEY, user)
-  if (role === 'admin') {
-    write(ACCESS_KEY, 'active')
-  }
+  if (isAdmin) write(ACCESS_KEY, 'active')
   return user
 }
 
-export async function signUp(name: string, identifier: string): Promise<SessionUser> {
+export async function signUp(name: string, identifier: string, password: string): Promise<SessionUser> {
   const isEmail = identifier.includes('@')
+  const email = isEmail ? identifier.trim() : phoneEmail(identifier)
+  const result = await authClient.signUp.email({ email, password, name })
+  if (result.error) throw new Error('Unable to create account')
   const user: SessionUser = {
-    id: `u-${crypto.randomUUID()}`,
+    id: result.data?.user?.id ?? `auth-${identifier}`,
     name,
     email: isEmail ? identifier : '',
     phone: isEmail ? undefined : identifier,
@@ -83,14 +88,6 @@ export async function signUp(name: string, identifier: string): Promise<SessionU
   }
   write(USER_KEY, user)
   setAccessState('pending')
-  // Also create in admin users store (database)
-  if (typeof window !== 'undefined') {
-    try {
-      await createUser({ id: user.id, name, email: user.email, phone: user.phone })
-    } catch (e) {
-      console.error('Failed to create user in database:', e)
-    }
-  }
   return user
 }
 

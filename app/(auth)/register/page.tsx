@@ -39,7 +39,7 @@ export default function RegisterPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { name: '', identifier: '', password: '', confirmPassword: '' } })
 
   const onSubmit = async (values: FormValues) => {
-    await signUp(values.name, values.identifier)
+    await signUp(values.name, values.identifier, values.password)
     router.push('/payment')
   }
 

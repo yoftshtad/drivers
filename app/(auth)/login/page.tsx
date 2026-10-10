@@ -37,14 +37,17 @@ export default function LoginPage() {
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null)
-    const user = signIn(values.identifier, values.password)
-    if (user.role === 'admin') {
-      router.push('/admin')
-      return
+    try {
+      const user = await signIn(values.identifier, values.password)
+      if (user.role === 'admin') {
+        router.push('/admin')
+        return
+      }
+      await syncUserAccess(values.identifier)
+      router.push(getAccessState() === 'active' ? '/dashboard' : '/payment')
+    } catch {
+      setServerError('Invalid email/phone or password')
     }
-    // Sync access state from database
-    await syncUserAccess(values.identifier)
-    router.push(getAccessState() === 'active' ? '/dashboard' : '/payment')
   }
 
   return (
