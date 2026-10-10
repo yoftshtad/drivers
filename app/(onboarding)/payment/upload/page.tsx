@@ -78,6 +78,7 @@ function UploadForm() {
         userName: user?.name ?? 'Student',
         userEmail: isEmail ? user?.email ?? '' : '',
         userPhone: isEmail ? undefined : user?.phone,
+        userId: user?.id,
         plan: 'Premium Access',
         amount: 2500,
         reference,

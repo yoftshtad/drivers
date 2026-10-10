@@ -15,7 +15,7 @@ export async function getPayments(): Promise<PaymentRecord[]> {
   return fetchPayments()
 }
 
-export async function createPayment(payment: Omit<PaymentRecord, 'id'> & { id?: string }): Promise<PaymentRecord> {
+export async function createPayment(payment: Omit<PaymentRecord, 'id'> & { id?: string; userId?: string }): Promise<PaymentRecord> {
   const res = await fetch('/api/admin/payments', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

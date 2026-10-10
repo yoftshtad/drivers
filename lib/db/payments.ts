@@ -28,10 +28,10 @@ export async function getPaymentById(id: string): Promise<PaymentRecord | null> 
   return row ? rowToPayment(row) : null
 }
 
-export async function createPayment(payment: Omit<PaymentRecord, 'id'> & { id?: string }): Promise<PaymentRecord> {
+export async function createPayment(payment: Omit<PaymentRecord, 'id'> & { id?: string; userId?: string }): Promise<PaymentRecord> {
   const id = payment.id ?? `pay-${Date.now().toString(36)}`
   const now = new Date().toISOString()
-  const userId = payment.userEmail ? `user-${payment.userEmail}` : (payment.userPhone ? `user-${payment.userPhone}` : `user-unknown`)
+  const userId = payment.userId ?? (payment.userEmail ? `user-${payment.userEmail}` : (payment.userPhone ? `user-${payment.userPhone}` : `user-unknown`))
   try {
     await executeRun(
       `INSERT INTO payments (id, user_id, user_name, user_email, user_phone, plan, amount, reference, status, submitted_at, reason, receipt_name, receipt_url, created_at, updated_at)

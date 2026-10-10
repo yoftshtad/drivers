@@ -1,0 +1,19 @@
+[33m745c005[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m no idea
+[33m8b57986[m ban
+[33mf1f2909[m cammel case
+[33me549685[m error handling
+[33mce7f503[m api key changed
+[33mb902cc3[m better auth added
+[33m71a8702[m payment verification list fixed
+[33mdf59213[m  database name matching
+[33m9dd264e[m turso fixed
+[33m11fc779[m cleared sample data
+[33m57331da[m local to cloud storage
+[33m4ce8371[m pending payment fixed
+[33m9ee51a7[m question
+[33m9241fa1[m error fix
+[33m183a532[m fixes
+[33mf798d61[m fix: remove pnpm-lockfile to use npm
+[33m2e649d6[m remove simulate approval
+[33m8a3d82e[m initial commit
+[33mcf4c63c[m initial commit
