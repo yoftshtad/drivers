@@ -19,7 +19,7 @@ export async function executeOne<T = any>(sql: string, args: any[] = []): Promis
   return rows[0] ?? null
 }
 
-export async function executeRun(sql: string, args: any[] = []): Promise<{ lastInsertRowid: string; changes: number }> {
+export async function executeRun(sql: string, args: any[] = []): Promise<{ lastInsertRowid: string | null; changes: number }> {
   const result = await db.execute({ sql, args })
-  return { lastInsertRowid: result.lastInsertRowid.toString(), changes: result.rowsAffected }
+  return { lastInsertRowid: result.lastInsertRowid?.toString() ?? null, changes: result.rowsAffected }
 }

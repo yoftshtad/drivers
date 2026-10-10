@@ -9,7 +9,7 @@ import { Mail, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { signUp } from '@/lib/session'
+import { useState } from 'react'
 
 const emailOrPhone = z.string().min(1, 'Email or phone is required').refine(
   (val) => z.string().email().safeParse(val).success || /^[\d\s+\-()]{7,}$/.test(val.replace(/\s/g, '')),
@@ -32,6 +32,7 @@ type FormValues = z.infer<typeof schema>
 
 export default function RegisterPage() {
   const router = useRouter()
+  const [serverError, setServerError] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
@@ -39,8 +40,43 @@ export default function RegisterPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { name: '', identifier: '', password: '', confirmPassword: '' } })
 
   const onSubmit = async (values: FormValues) => {
-    await signUp(values.name, values.identifier)
-    router.push('/payment')
+    setServerError(null)
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: values.name,
+          identifier: values.identifier,
+          password: values.password,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        setServerError(data.error ?? 'Registration failed')
+        return
+      }
+
+      // Auto-login after registration
+      const loginRes = await fetch('/api/auth/callback/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: values.identifier,
+          password: values.password,
+        }),
+      })
+
+      if (loginRes.ok) {
+        router.push('/payment')
+        router.refresh()
+      } else {
+        router.push('/login')
+      }
+    } catch {
+      setServerError('Registration failed. Please try again.')
+    }
   }
 
   return (
@@ -73,6 +109,8 @@ export default function RegisterPage() {
             {errors.confirmPassword && <p className="text-xs font-medium text-destructive">{errors.confirmPassword.message}</p>}
           </div>
         </div>
+
+        {serverError && <p className="rounded-lg bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive">{serverError}</p>}
 
         <Button type="submit" size="lg" disabled={isSubmitting} className="mt-1 h-11 w-full text-sm">
           {isSubmitting ? 'Creating account…' : 'Create account'}

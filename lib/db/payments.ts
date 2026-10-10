@@ -63,7 +63,16 @@ export async function createPayment(payment: Omit<PaymentRecord, 'id'> & { id?: 
 
 export async function updatePayment(id: string, status: PaymentRecord['status'], reason?: string): Promise<void> {
   const now = new Date().toISOString()
+  
+  // Get the payment to find the user_id
+  const payment = await executeOne<any>('SELECT user_id FROM payments WHERE id = ?', [id])
+  
   await executeRun('UPDATE payments SET status = ?, reason = ?, updated_at = ? WHERE id = ?', [status, reason ?? null, now, id])
+  
+  // If approved, update user's plan to premium
+  if (status === 'approved' && payment?.user_id) {
+    await executeRun('UPDATE users SET plan = ?, updated_at = ? WHERE id = ?', ['premium', now, payment.user_id])
+  }
 }
 
 export async function deletePayment(id: string): Promise<void> {

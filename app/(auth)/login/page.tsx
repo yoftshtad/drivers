@@ -3,15 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signIn, useSession } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff, Info, Mail, Phone } from 'lucide-react'
+import { Eye, EyeOff, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { signIn, syncUserAccess } from '@/lib/session'
-import { getAccessState } from '@/lib/access'
 
 const emailOrPhone = z.string().min(1, 'Email or phone is required').refine(
   (val) => z.string().email().safeParse(val).success || /^[\d\s+\-()]{7,}$/.test(val.replace(/\s/g, '')),
@@ -27,6 +26,7 @@ type FormValues = z.infer<typeof schema>
 
 export default function LoginPage() {
   const router = useRouter()
+  const { data: session, update } = useSession()
   const [show, setShow] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const {
@@ -37,14 +37,34 @@ export default function LoginPage() {
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null)
-    const user = signIn(values.identifier, values.password)
-    if (user.role === 'admin') {
-      router.push('/admin')
+    const result = await signIn('credentials', {
+      identifier: values.identifier,
+      password: values.password,
+      redirect: false,
+    })
+
+    if (result?.error) {
+      setServerError(result.error)
       return
     }
-    // Sync access state from database
-    await syncUserAccess(values.identifier)
-    router.push(getAccessState() === 'active' ? '/dashboard' : '/payment')
+
+    // Admin credentials are known - redirect immediately
+    const isAdmin = values.identifier.trim().toLowerCase() === 'admin@driveprep.com'
+    if (isAdmin) {
+      router.push('/admin')
+      router.refresh()
+      return
+    }
+
+    // For regular users, wait for session to update then redirect based on access
+    const newSession = await update()
+    
+    // After update, the new session will have the latest access state
+    const userAccess = newSession?.user?.access
+    const redirectPath = userAccess === 'active' ? '/dashboard' : '/waiting'
+    
+    router.push(redirectPath)
+    router.refresh()
   }
 
   return (

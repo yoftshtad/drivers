@@ -41,7 +41,8 @@ export async function createUser(input: { id: string; name: string; email: strin
 
 export async function updateUserAccess(id: string, access: AccessState): Promise<void> {
   const now = new Date().toISOString()
-  await executeRun('UPDATE users SET access_state = ?, updated_at = ? WHERE id = ?', [access, now, id])
+  const plan = access === 'active' ? 'premium' : 'free'
+  await executeRun('UPDATE users SET access_state = ?, plan = ?, updated_at = ? WHERE id = ?', [access, plan, now, id])
 }
 
 export async function deleteUser(id: string): Promise<void> {

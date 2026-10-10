@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getAccessState, getUser, subscribe, type SessionUser } from './session'
-import type { AccessState } from './types'
+import { useSession as useNextAuthSession } from 'next-auth/react'
+import type { SessionUser, AccessState } from './types'
+import { getRejectionReason, setRejectionReason } from './rejection'
 
-export { getAccessState, setAccessState } from './session'
+export { getRejectionReason, setRejectionReason } from './rejection'
+export { setAccessState } from './session'
+export type { SessionUser, AccessState } from './types'
 
 /**
  * Central access rule.
@@ -28,19 +30,26 @@ export function accessRedirect(state: AccessState): string {
 }
 
 export function useSession(): { user: SessionUser | null; access: AccessState; ready: boolean } {
-  const [user, setUser] = useState<SessionUser | null>(null)
-  const [access, setAccess] = useState<AccessState>('pending')
-  const [ready, setReady] = useState(false)
+  const { data: session, status } = useNextAuthSession()
+  
+  const user = session?.user ? {
+    id: session.user.id,
+    name: session.user.name ?? '',
+    email: session.user.email ?? '',
+    phone: undefined,
+    role: session.user.role,
+    access: session.user.access,
+  } : null
 
-  useEffect(() => {
-    const sync = () => {
-      setUser(getUser())
-      setAccess(getAccessState())
-    }
-    sync()
-    setReady(true)
-    return subscribe(sync)
-  }, [])
+  let access: AccessState = 'pending'
+  if (user) {
+    if (user.role === 'admin') access = 'active'
+    else if (user.access === 'active') access = 'active'
+  }
 
-  return { user, access, ready }
+  return { user, access, ready: status !== 'loading' }
+}
+
+export function useAccess() {
+  return useSession()
 }

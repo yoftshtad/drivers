@@ -1,9 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPayments, createPayment, updatePayment, deletePayment } from '@/lib/db/payments'
+import { db, execute } from '@/lib/db/index'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const payments = await getPayments()
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+    
+    let payments
+    if (userId) {
+      const rows = await execute<any>('SELECT * FROM payments WHERE user_id = ? ORDER BY submitted_at DESC', [userId])
+      payments = rows.map((row: any) => ({
+        id: row.id,
+        userName: row.user_name,
+        userEmail: row.user_email,
+        userPhone: row.user_phone,
+        plan: row.plan,
+        amount: row.amount,
+        reference: row.reference,
+        status: row.status,
+        submittedAt: row.submitted_at,
+        reason: row.reason,
+        receiptName: row.receipt_name,
+        receiptUrl: row.receipt_url,
+      }))
+    } else {
+      const rows = await execute<any>('SELECT * FROM payments ORDER BY submitted_at DESC')
+      payments = rows.map((row: any) => ({
+        id: row.id,
+        userName: row.user_name,
+        userEmail: row.user_email,
+        userPhone: row.user_phone,
+        plan: row.plan,
+        amount: row.amount,
+        reference: row.reference,
+        status: row.status,
+        submittedAt: row.submitted_at,
+        reason: row.reason,
+        receiptName: row.receipt_name,
+        receiptUrl: row.receipt_url,
+      }))
+    }
     return NextResponse.json({ payments })
   } catch (e) {
     console.error('GET /api/admin/payments error:', e)
@@ -14,6 +50,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const { createPayment } = await import('@/lib/db/payments')
     const payment = await createPayment(body)
     return NextResponse.json({ payment }, { status: 201 })
   } catch (e: any) {

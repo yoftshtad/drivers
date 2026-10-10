@@ -10,6 +10,15 @@ export type AccessState = 'pending' | 'active' | 'rejected'
 
 export type UserRole = 'student' | 'admin'
 
+export interface SessionUser {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  role: UserRole
+  access: AccessState
+}
+
 export interface Lesson {
   id: string
   title: string

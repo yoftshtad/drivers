@@ -1,145 +1,58 @@
 'use client'
 
-import type { AccessState, UserRole } from './types'
-import { createUser } from './users-store'
+import { useSession as useNextAuthSession, signOut as nextAuthSignOut } from 'next-auth/react'
+import type { SessionUser, AccessState, UserRole } from '@/lib/types'
 
-export interface SessionUser {
-  id: string
-  name: string
-  email: string
-  phone?: string
-  role: UserRole
-  plan: 'free' | 'premium'
+export function useAuth() {
+  const { data: session, status, update } = useNextAuthSession()
+
+  const user = session?.user ? {
+    id: session.user.id,
+    name: session.user.name ?? '',
+    email: session.user.email ?? '',
+    phone: undefined,
+    role: session.user.role,
+    access: session.user.access,
+  } : null
+
+  const loading = status === 'loading'
+
+  return { user, loading }
 }
 
-// Single admin credential — only this exact email + password gets admin access
-const ADMIN_EMAIL = 'admin@driveprep.com'
-const ADMIN_PASSWORD = 'driveprep2024'
-
-const USER_KEY = 'dp.user'
-const ACCESS_KEY = 'dp.access'
-const REJECTION_KEY = 'dp.rejection'
-const EVENT = 'dp.session-change'
-
-function read<T>(key: string): T | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = window.localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as T) : null
-  } catch {
-    return null
-  }
-}
-
-function write(key: string, value: unknown) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(key, JSON.stringify(value))
-  window.dispatchEvent(new Event(EVENT))
-}
-
-export function subscribe(listener: () => void) {
-  if (typeof window === 'undefined') return () => {}
-  window.addEventListener(EVENT, listener)
-  window.addEventListener('storage', listener)
-  return () => {
-    window.removeEventListener(EVENT, listener)
-    window.removeEventListener('storage', listener)
-  }
+export function useAccessState(): AccessState {
+  const { user } = useAuth()
+  if (!user) return 'pending'
+  if (user.role === 'admin') return 'active'
+  if (user.access === 'active') return 'active'
+  return 'pending'
 }
 
 export function getUser(): SessionUser | null {
-  return read<SessionUser>(USER_KEY)
+  return null
 }
 
-export function signIn(identifier: string, password: string): SessionUser {
-  const normalized = identifier.trim().toLowerCase()
-  const isAdmin = normalized === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD
-  const role: UserRole = isAdmin ? 'admin' : 'student'
-  const isEmail = identifier.includes('@')
-  const user: SessionUser = {
-    id: role === 'admin' ? 'u-admin' : 'u-student',
-    name: isEmail ? identifier.split('@')[0]?.replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : identifier,
-    email: isEmail ? identifier : '',
-    phone: isEmail ? undefined : identifier,
-    role,
-    plan: role === 'admin' ? 'premium' : 'free',
-  }
-  write(USER_KEY, user)
-  if (role === 'admin') {
-    write(ACCESS_KEY, 'active')
-  }
-  return user
+export async function signIn(identifier: string, password: string): Promise<SessionUser> {
+  throw new Error('Use NextAuth signIn from "next-auth/react"')
 }
 
 export async function signUp(name: string, identifier: string): Promise<SessionUser> {
-  const isEmail = identifier.includes('@')
-  const user: SessionUser = {
-    id: `u-${crypto.randomUUID()}`,
-    name,
-    email: isEmail ? identifier : '',
-    phone: isEmail ? undefined : identifier,
-    role: 'student',
-    plan: 'free',
-  }
-  write(USER_KEY, user)
-  setAccessState('pending')
-  // Also create in admin users store (database)
-  if (typeof window !== 'undefined') {
-    try {
-      await createUser({ id: user.id, name, email: user.email, phone: user.phone })
-    } catch (e) {
-      console.error('Failed to create user in database:', e)
-    }
-  }
-  return user
+  throw new Error('Use registration API route')
 }
 
 export function signOut() {
-  if (typeof window === 'undefined') return
-  window.localStorage.removeItem(USER_KEY)
-  window.localStorage.removeItem(ACCESS_KEY)
-  window.localStorage.removeItem(REJECTION_KEY)
-  window.dispatchEvent(new Event(EVENT))
+  nextAuthSignOut({ callbackUrl: '/login' })
 }
 
 export function getAccessState(): AccessState {
-  return read<AccessState>(ACCESS_KEY) ?? 'pending'
+  return 'pending'
 }
 
 export function setAccessState(state: AccessState) {
-  write(ACCESS_KEY, state)
-}
-
-export function getRejectionReason(): string {
-  return read<string>(REJECTION_KEY) ?? 'The uploaded receipt could not be verified. Please make sure the amount, reference number and date are clearly visible.'
-}
-
-export function setRejectionReason(reason: string) {
-  write(REJECTION_KEY, reason)
 }
 
 export function initials(name: string) {
   return name.split(' ').map((p) => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
 }
 
-// Fetch user access from database and sync localStorage
-export async function syncUserAccess(identifier: string): Promise<AccessState | null> {
-  if (typeof window === 'undefined') return null
-  try {
-    const isEmail = identifier.includes('@')
-    const url = isEmail 
-      ? `/api/admin/users?email=${encodeURIComponent(identifier)}`
-      : `/api/admin/users?phone=${encodeURIComponent(identifier)}`
-    const res = await fetch(url, { cache: 'no-store' })
-    if (!res.ok) return null
-    const data = await res.json()
-    const user = data.users?.[0]
-    if (user) {
-      write(ACCESS_KEY, user.access)
-      return user.access
-    }
-  } catch (e) {
-    console.error('Failed to sync user access:', e)
-  }
-  return null
-}
+export { getRejectionReason, setRejectionReason } from './rejection'
