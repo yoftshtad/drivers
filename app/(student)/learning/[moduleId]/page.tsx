@@ -5,18 +5,15 @@ import { useParams } from 'next/navigation'
 import { ArrowLeft, CheckCircle2, ChevronRight, Circle, Clock3, Film, FileText, PlayCircle } from 'lucide-react'
 import { ModuleIcon } from '@/components/student/module-icon'
 import { ReadingView } from '@/components/student/reading-view'
-import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { moduleMeta } from '@/lib/mock-data'
 import { useModules } from '@/lib/module-store'
-import { useProgressMap } from '@/lib/progress-store'
 import { useQuestions } from '@/lib/question-store'
 import { cn } from '@/lib/utils'
 
 export default function ModuleDetailPage() {
   const params = useParams<{ moduleId: string }>()
   const { modules } = useModules()
-  const progressMap = useProgressMap()
   const questions = useQuestions()
 
   const mod = modules.find((m) => m.id === params.moduleId)
@@ -39,7 +36,6 @@ export default function ModuleDetailPage() {
   }
 
   const meta = moduleMeta[mod.color]
-  const progress = progressMap[mod.id]?.percent ?? mod.progress
   const done = mod.lessons.filter((l) => l.completed).length
   const nextLesson = mod.lessons.find((l) => !l.completed) ?? mod.lessons[0]
   const questionCount = questions.filter((q) => q.moduleId === mod.id).length
@@ -56,10 +52,6 @@ export default function ModuleDetailPage() {
           <p className="text-xs font-medium text-muted-foreground">Module {mod.order}</p>
           <h1 className="text-2xl font-extrabold tracking-tight">{mod.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{mod.description}</p>
-          <div className="mt-3 flex items-center gap-3">
-            <Progress value={progress} indicatorClassName={meta.bar} className="max-w-64" />
-            <span className={`text-xs font-bold ${meta.text}`}>{progress}%</span>
-          </div>
         </div>
         {nextLesson && (
           <div className="flex flex-col gap-2">

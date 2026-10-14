@@ -69,7 +69,6 @@ export interface Questionnaire {
   title: string
   description: string
   questionCount: number
-  timeLimitMin: number
   passMark: number
   mode: 'practice' | 'mock'
 }

@@ -34,7 +34,7 @@ export default function BookmarksPage() {
           <p className="mx-auto mt-1.5 max-w-xs text-sm leading-6 text-muted-foreground">
             Tap the bookmark icon on any question while practicing and it will appear here.
           </p>
-          <Button className="mt-5 h-10 px-5 text-sm" render={<Link href="/practice" />}>
+          <Button className="mt-5 h-10 px-5 text-sm" render={<Link href="/practice" />} nativeButton={false}>
             Start practicing
           </Button>
         </div>

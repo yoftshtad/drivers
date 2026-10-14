@@ -8,13 +8,13 @@ const seed = seedModules
 
 async function fetchModules(): Promise<LearningModule[]> {
   const res = await fetch('/api/admin/modules', { cache: 'no-store' })
-  if (!res.ok) return seed
+  if (!res.ok) return []
   const data = await res.json()
-  return data.modules ?? seed
+  return data.modules ?? []
 }
 
 export async function getModules(): Promise<LearningModule[]> {
-  if (typeof window === 'undefined') return seed
+  if (typeof window === 'undefined') return []
   return fetchModules()
 }
 
@@ -65,7 +65,7 @@ export function subscribeModules(listener: () => void) {
 
 export { type LearningModule, type ModuleContent }
 export function useModules(): { modules: LearningModule[]; ready: boolean } {
-  const [modules, setModules] = useState<LearningModule[]>(seed)
+  const [modules, setModules] = useState<LearningModule[]>([])
   const [ready, setReady] = useState(false)
 
   useEffect(() => {

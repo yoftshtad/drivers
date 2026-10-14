@@ -3,29 +3,25 @@
 import Link from 'next/link'
 import { ChevronRight, Clock3, FileText } from 'lucide-react'
 import { ModuleIcon } from '@/components/student/module-icon'
-import { Progress } from '@/components/ui/progress'
 import { moduleMeta } from '@/lib/mock-data'
 import { useModules } from '@/lib/module-store'
-import { useProgressMap } from '@/lib/progress-store'
 import { estimateReadingMinutes } from '@/lib/pdf-extract'
 
 export default function LearningPage() {
   const { modules } = useModules()
-  const progressMap = useProgressMap()
 
   return (
     <div className="mx-auto max-w-7xl">
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Learning</h1>
         <p className="mt-1.5 text-sm text-muted-foreground sm:text-base">
-          Read each module like an article and track your progress as you go.
+          Read each module like an article.
         </p>
       </header>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {modules.map((mod) => {
           const meta = moduleMeta[mod.color]
-          const progress = progressMap[mod.id]?.percent ?? mod.progress
           return (
             <article key={mod.id} className="flex flex-col rounded-2xl border border-border/70 bg-card p-5 shadow-[0_1px_3px_rgb(16_24_40/0.05)]">
               <div className="flex items-start justify-between">
@@ -35,10 +31,6 @@ export default function LearningPage() {
               <p className="mt-4 text-xs font-medium text-muted-foreground">Module {mod.order}</p>
               <h2 className="text-base font-bold tracking-tight">{mod.title}</h2>
               <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{mod.description}</p>
-              <div className="mt-4">
-                <Progress value={progress} indicatorClassName={meta.bar} />
-                <p className={`mt-2 text-xs font-bold ${meta.text}`}>{progress}% Complete</p>
-              </div>
               <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                 {mod.content ? (
                   <>
@@ -54,7 +46,7 @@ export default function LearningPage() {
                 href={`/learning/${mod.id}`}
                 className={`mt-4 flex h-9 items-center justify-center rounded-lg border bg-card text-sm font-semibold transition-colors hover:bg-muted/50 ${meta.border} ${meta.text}`}
               >
-                {progress > 0 ? 'Continue Learning' : 'Start Learning'}
+                Start Learning
               </Link>
             </article>
           )

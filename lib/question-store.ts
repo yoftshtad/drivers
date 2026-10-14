@@ -2,25 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import type { Question } from './types'
-import { questionBank as seedQuestions } from './mock-data'
 
 export { type Question }
 
 async function fetchQuestions(moduleId?: string): Promise<Question[]> {
   const url = moduleId ? `/api/admin/questions?moduleId=${moduleId}` : '/api/admin/questions'
   const res = await fetch(url, { cache: 'no-store' })
-  if (!res.ok) return seedQuestions
+  if (!res.ok) return []
   const data = await res.json()
-  return data.questions ?? seedQuestions
+  return data.questions ?? []
 }
 
 export async function getQuestions(): Promise<Question[]> {
-  if (typeof window === 'undefined') return seedQuestions
+  if (typeof window === 'undefined') return []
   return fetchQuestions()
 }
 
 export async function getQuestionsFor(moduleId: string): Promise<Question[]> {
-  if (typeof window === 'undefined') return seedQuestions.filter(q => q.moduleId === moduleId)
+  if (typeof window === 'undefined') return []
   return fetchQuestions(moduleId)
 }
 
@@ -66,7 +65,7 @@ export function subscribeQuestions(listener: () => void) {
 }
 
 export function useQuestions(): Question[] {
-  const [items, setItems] = useState<Question[]>(seedQuestions)
+  const [items, setItems] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

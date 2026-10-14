@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  Bell, BookOpen, Bookmark, ChartLine, ChevronDown, ClipboardList, CreditCard, Crown, Headphones,
+  Bell, BookOpen, Bookmark, ChevronDown, ClipboardList, CreditCard, Headphones,
   Home, CircleHelp, LogOut, Menu, Settings, User, X,
 } from 'lucide-react'
 import { DrivePrepLogo } from './logo'
@@ -17,7 +17,6 @@ const nav = [
   { href: '/learning', label: 'Learning', icon: BookOpen },
   { href: '/questionnaires', label: 'Questionnaire', icon: CircleHelp },
   { href: '/mock-tests', label: 'Mock Tests', icon: ClipboardList },
-  { href: '/performance', label: 'Performance', icon: ChartLine },
   { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
   { href: '/profile', label: 'Profile', icon: User },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -51,15 +50,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
-function PremiumCard() {
-  return (
-    <div className="rounded-2xl bg-primary/5 p-5 text-center ring-1 ring-primary/10">
-      <Crown className="mx-auto size-7 text-amber-400" fill="currentColor" />
-      <p className="mt-2 text-sm font-bold text-primary">Premium Access</p>
-      <p className="mt-1 text-xs leading-5 text-muted-foreground">You have full access to all modules and tests.</p>
-    </div>
-  )
-}
+
 
 function AccountMenu() {
   const { user } = useSession()
@@ -159,7 +150,6 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
       <div className="flex">
         <aside className="sticky top-18 hidden h-[calc(100vh-4.5rem)] w-64 shrink-0 flex-col justify-between overflow-y-auto border-r border-border/70 bg-card p-4 lg:flex">
           <NavLinks />
-          <PremiumCard />
         </aside>
 
         {drawer && (
@@ -174,9 +164,6 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
               </div>
               <div className="flex flex-1 flex-col justify-between overflow-y-auto p-4">
                 <NavLinks onNavigate={() => setDrawer(false)} />
-                <div className="pt-4">
-                  <PremiumCard />
-                </div>
               </div>
             </div>
           </div>

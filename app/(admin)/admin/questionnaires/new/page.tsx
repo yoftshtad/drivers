@@ -19,7 +19,6 @@ export default function NewQuestionnairePage() {
   const [moduleId, setModuleId] = useState('random')
   const [mode, setMode] = useState<'practice' | 'mock'>('practice')
   const [questionCount, setQuestionCount] = useState(20)
-  const [timeLimitMin, setTimeLimitMin] = useState(20)
   const [passMark, setPassMark] = useState(70)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,10 +26,9 @@ export default function NewQuestionnairePage() {
     e.preventDefault()
     if (title.trim().length < 3) return setError('Title must be at least 3 characters.')
     if (questionCount < 1 || questionCount > 200) return setError('Question count must be between 1 and 200.')
-    if (timeLimitMin < 1) return setError('Time limit must be at least 1 minute.')
     if (passMark < 1 || passMark > 100) return setError('Pass mark must be between 1 and 100.')
     setError(null)
-    createQuestionnaire({ title: title.trim(), description: description.trim(), moduleId, mode, questionCount, timeLimitMin, passMark })
+    createQuestionnaire({ title: title.trim(), description: description.trim(), moduleId, mode, questionCount, passMark })
     router.push('/admin/questionnaires')
   }
 
@@ -63,7 +61,7 @@ export default function NewQuestionnairePage() {
           <Label htmlFor="description">Description</Label>
           <Textarea id="description" placeholder="What this questionnaire covers…" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-2">
             <Label htmlFor="mode">Mode</Label>
             <Select id="mode" value={mode} onChange={(e) => setMode(e.target.value as 'practice' | 'mock')}>
@@ -76,10 +74,6 @@ export default function NewQuestionnairePage() {
             <Input id="count" type="number" min={1} max={200} value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="time">Time limit (min)</Label>
-            <Input id="time" type="number" min={1} value={timeLimitMin} onChange={(e) => setTimeLimitMin(Number(e.target.value))} />
-          </div>
-          <div className="flex flex-col gap-2">
             <Label htmlFor="pass">Pass mark (%)</Label>
             <Input id="pass" type="number" min={1} max={100} value={passMark} onChange={(e) => setPassMark(Number(e.target.value))} />
           </div>
@@ -88,7 +82,7 @@ export default function NewQuestionnairePage() {
           {mode === 'mock' ? (
             <>
               <X className="size-4 shrink-0 text-amber-500" /> Mock mode randomizes questions and options, hides correctness feedback until
-              submission and enforces the timer.
+              submission.
             </>
           ) : (
             <>

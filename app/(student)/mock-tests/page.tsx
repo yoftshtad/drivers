@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ChevronRight, Clock3, ListChecks, Target } from 'lucide-react'
+import { ChevronRight, ListChecks, Target } from 'lucide-react'
 import { ModuleIcon } from '@/components/student/module-icon'
 import { useModules } from '@/lib/module-store'
 import { useQuestionnaires } from '@/lib/questionnaire-store'
@@ -33,9 +33,6 @@ export default function MockTestsPage() {
                     <ListChecks className="size-3.5" /> {test.questionCount} questions
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <Clock3 className="size-3.5" /> {test.timeLimitMin} minutes
-                  </span>
-                  <span className="flex items-center gap-1.5">
                     <Target className="size-3.5" /> Pass mark {test.passMark}%
                   </span>
                 </div>
@@ -64,7 +61,7 @@ export default function MockTestsPage() {
         <ul className="mt-3 flex flex-col gap-2 text-sm leading-6 text-muted-foreground">
           <li>• Questions and options are randomized on every attempt.</li>
           <li>• Correctness feedback is delayed until you submit the full test.</li>
-          <li>• The timer submits automatically when it reaches zero.</li>
+          <li>• No time limit — take as long as you need.</li>
           <li>• You can navigate between questions and change answers before submitting.</li>
         </ul>
       </section>

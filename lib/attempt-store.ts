@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import type { AttemptRecord } from './types'
 
+const LOCAL_STORAGE_KEY = 'dp.last-attempt'
+
 async function fetchAttempts(last = false): Promise<AttemptRecord[] | AttemptRecord | null> {
   const url = last ? '/api/student/attempts?last=true' : '/api/student/attempts'
   const res = await fetch(url, { cache: 'no-store' })
@@ -39,16 +41,36 @@ export interface LastAttempt {
 }
 
 export async function setLastAttempt(attempt: LastAttempt): Promise<void> {
-  const res = await fetch('/api/student/attempts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ lastAttempt: attempt }),
-  })
-  if (!res.ok) throw new Error('Failed to save last attempt')
+  // Always save to localStorage first (works offline/when DB is down)
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(attempt))
+    } catch {}
+  }
+  
+  // Also try to save to DB
+  try {
+    const res = await fetch('/api/student/attempts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lastAttempt: attempt }),
+    })
+    if (!res.ok) throw new Error('Failed to save last attempt')
+  } catch (e) {
+    console.warn('Failed to save last attempt to DB, using localStorage fallback:', e)
+  }
 }
 
 export async function getLastAttempt(): Promise<LastAttempt | null> {
   if (typeof window === 'undefined') return null
+  
+  // Try localStorage first (instant, works offline)
+  try {
+    const local = window.localStorage.getItem(LOCAL_STORAGE_KEY)
+    if (local) return JSON.parse(local) as LastAttempt
+  } catch {}
+  
+  // Fallback to API
   return fetchAttempts(true) as Promise<LastAttempt | null>
 }
 

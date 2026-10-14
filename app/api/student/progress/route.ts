@@ -31,3 +31,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to save progress' }, { status: 500 })
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const moduleId = searchParams.get('moduleId')
+    if (!moduleId) {
+      return NextResponse.json({ error: 'moduleId required' }, { status: 400 })
+    }
+    await deleteModuleProgress(moduleId)
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    console.error('DELETE /api/student/progress error:', e)
+    return NextResponse.json({ error: 'Failed to delete progress' }, { status: 500 })
+  }
+}

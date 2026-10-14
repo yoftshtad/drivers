@@ -26,17 +26,25 @@ export function QuizRunner() {
   const [feedback, setFeedback] = useState<null | { correct: boolean }>(null)
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [submitting, setSubmitting] = useState(false)
-  const [confirmSubmit, setConfirmSubmit] = useState(false)
 
   useEffect(() => {
-    const s = getQuizSession()
-    if (!s || s.questions.length === 0) {
-      router.replace('/')
-      return
+    let retries = 0
+    const loadSession = () => {
+      const s = getQuizSession()
+      if (!s || s.questions.length === 0) {
+        if (retries < 10) {
+          retries++
+          setTimeout(loadSession, 100)
+          return
+        }
+        router.replace('/')
+        return
+      }
+      setSession(s)
+      setSecondsLeft(s.timeLimitMin * 60)
+      setLoaded(true)
     }
-    setSession(s)
-    setSecondsLeft(s.timeLimitMin * 60)
-    setLoaded(true)
+    loadSession()
   }, [router])
 
   const question = session?.questions[index]
@@ -83,7 +91,7 @@ export function QuizRunner() {
   }, [answers, router, secondsLeft, session, total])
 
   useEffect(() => {
-    if (!session || session.mode !== 'mock') return
+    if (!session || session.mode !== 'mock' || session.timeLimitMin <= 0) return
     const t = setInterval(() => {
       setSecondsLeft((s) => {
         if (s <= 1) {
@@ -97,7 +105,7 @@ export function QuizRunner() {
   }, [session])
 
   useEffect(() => {
-    if (session && session.mode === 'mock' && secondsLeft === 0 && !submitting && loaded) finish()
+    if (session && session.mode === 'mock' && session.timeLimitMin > 0 && secondsLeft === 0 && !submitting && loaded) finish()
   }, [secondsLeft, session, submitting, loaded, finish])
 
   if (!loaded || !session || !question) {
@@ -121,9 +129,12 @@ export function QuizRunner() {
   }
 
   const next = () => {
+    // Save answer before moving (for mock mode) - also on last question before submit
+    if (mode === 'mock' && selected.length > 0) {
+      setAnswers((prev) => ({ ...prev, [question.id]: selected }))
+    }
     if (isLast) {
-      if (mode === 'practice') finish()
-      else setConfirmSubmit(true)
+      finish()
       return
     }
     const nextQ = session.questions[index + 1]
@@ -134,6 +145,10 @@ export function QuizRunner() {
 
   const moveTo = (target: number) => {
     if (target === index || target < 0 || target >= total) return
+    // Save answer before moving (for mock mode)
+    if (mode === 'mock' && selected.length > 0) {
+      setAnswers((prev) => ({ ...prev, [question.id]: selected }))
+    }
     setIndex(target)
     setSelected(answers[session.questions[target].id] ?? [])
     setFeedback(null)
@@ -151,7 +166,7 @@ export function QuizRunner() {
             Question {index + 1} of {total} · {mode === 'practice' ? 'Practice mode — instant feedback' : 'Mock mode — feedback after submission'}
           </p>
         </div>
-        {mode === 'mock' && (
+        {mode === 'mock' && session && session.timeLimitMin > 0 && (
           <Badge variant={secondsLeft < 60 ? 'destructive' : 'secondary'} className="gap-1.5 px-3 py-1.5 text-sm">
             <Timer className="size-4" /> {formatTime(secondsLeft)}
           </Badge>
@@ -255,7 +270,7 @@ export function QuizRunner() {
               </Button>
             )
           ) : isLast ? (
-            <Button onClick={() => setConfirmSubmit(true)} className="h-10 px-5 text-sm">
+            <Button onClick={next} className="h-10 px-5 text-sm">
               Submit test
             </Button>
           ) : (
@@ -265,25 +280,6 @@ export function QuizRunner() {
           )}
         </div>
       </article>
-
-      {confirmSubmit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-5">
-          <div className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-xl">
-            <h3 className="text-lg font-bold">Submit test?</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              You answered {answeredCount} of {total} questions. Unanswered questions are scored as incorrect.
-            </p>
-            <div className="mt-5 flex gap-2.5">
-              <Button variant="outline" className="h-10 flex-1 text-sm" onClick={() => setConfirmSubmit(false)}>
-                Keep working
-              </Button>
-              <Button className="h-10 flex-1 text-sm" onClick={finish} disabled={submitting}>
-                {submitting ? 'Grading…' : 'Submit'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <p className="mt-4 text-center">
         <Link href={session.introPath} className="text-xs font-semibold text-muted-foreground hover:text-foreground">

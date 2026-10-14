@@ -2,6 +2,14 @@ import { db, execute, executeOne, executeRun } from './index'
 import type { LearningModule, ModuleColor, ModuleContent } from '@/lib/types'
 
 function rowToModule(row: any): LearningModule {
+  let content: ModuleContent | undefined = undefined
+  if (row.content) {
+    try {
+      content = JSON.parse(row.content)
+    } catch {
+      content = undefined
+    }
+  }
   return {
     id: row.id,
     order: row.order_num,
@@ -10,8 +18,8 @@ function rowToModule(row: any): LearningModule {
     color: row.color,
     progress: row.progress,
     questionCount: row.question_count,
-    lessons: [], // not in schema
-    content: undefined, // not in schema
+    lessons: [],
+    content,
   }
 }
 
@@ -45,6 +53,7 @@ export async function updateModule(id: string, patch: Partial<LearningModule>): 
   if (patch.color !== undefined) { sets.push('color = ?'); args.push(patch.color) }
   if (patch.progress !== undefined) { sets.push('progress = ?'); args.push(patch.progress) }
   if (patch.questionCount !== undefined) { sets.push('question_count = ?'); args.push(patch.questionCount) }
+  if (patch.content !== undefined) { sets.push('content = ?'); args.push(patch.content ? JSON.stringify(patch.content) : null) }
   if (sets.length === 0) return
   sets.push('updated_at = ?')
   args.push(new Date().toISOString())
@@ -59,8 +68,8 @@ export async function deleteModule(id: string): Promise<void> {
 export async function replaceModules(list: LearningModule[]): Promise<void> {
   const now = new Date().toISOString()
   await db.transaction(list.map(m => ({
-    sql: `INSERT OR REPLACE INTO modules (id, order_num, title, description, color, progress, question_count, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [m.id, m.order, m.title, m.description, m.color, m.progress, m.questionCount, now, now]
+    sql: `INSERT OR REPLACE INTO modules (id, order_num, title, description, color, progress, question_count, content, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [m.id, m.order, m.title, m.description, m.color, m.progress, m.questionCount, m.content ? JSON.stringify(m.content) : null, now, now]
   })))
 }

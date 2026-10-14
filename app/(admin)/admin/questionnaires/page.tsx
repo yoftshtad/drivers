@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { ChevronRight, Plus, Trash2, FileSpreadsheet } from 'lucide-react'
 import { ModuleIcon } from '@/components/student/module-icon'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -32,9 +32,14 @@ export default function AdminQuestionnairesPage() {
             {questionnaires.length} questionnaires. Configure count, time limit, pass mark and mode — students can enter any of them directly.
           </p>
         </div>
-        <Link href="/admin/questionnaires/new" className="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
-          <Plus className="size-4" /> New questionnaire
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/admin/questionnaires/import" className="flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold transition-colors hover:bg-muted">
+            <FileSpreadsheet className="size-4" /> Import from Excel
+          </Link>
+          <Link href="/admin/questionnaires/new" className="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
+            <Plus className="size-4" /> New questionnaire
+          </Link>
+        </div>
       </header>
 
       {deletedTitle && (
@@ -60,7 +65,6 @@ export default function AdminQuestionnairesPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary">{q.questionCount} questions</Badge>
-                <Badge variant="secondary">{q.timeLimitMin} min</Badge>
                 <Badge variant="secondary">Pass {q.passMark}%</Badge>
               </div>
               <div className="flex items-center gap-1.5">

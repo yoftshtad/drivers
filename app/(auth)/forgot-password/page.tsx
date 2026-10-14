@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           We sent a password reset link to <span className="font-semibold text-foreground">{email}</span>. The link expires in 30 minutes.
         </p>
-        <Button size="lg" className="mt-7 h-11 w-full text-sm" render={<Link href="/login" />}>
+        <Button size="lg" className="mt-7 h-11 w-full text-sm" render={<Link href="/login" />} nativeButton={false}>
           Back to login
         </Button>
         <p className="mt-4 text-xs text-muted-foreground">

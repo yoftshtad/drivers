@@ -2,23 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import type { Questionnaire } from './types'
-import { mockTests, questionnaires as seedQuestionnaires } from './mock-data'
 
 export { type Questionnaire }
 
-function seed(): Questionnaire[] {
-  return [...seedQuestionnaires, ...mockTests]
-}
-
 async function fetchQuestionnaires(): Promise<Questionnaire[]> {
   const res = await fetch('/api/admin/questionnaires', { cache: 'no-store' })
-  if (!res.ok) return seed()
+  if (!res.ok) return []
   const data = await res.json()
-  return data.questionnaires ?? seed()
+  return data.questionnaires ?? []
 }
 
 export async function getQuestionnaires(): Promise<Questionnaire[]> {
-  if (typeof window === 'undefined') return seed()
+  if (typeof window === 'undefined') return []
   return fetchQuestionnaires()
 }
 
@@ -55,7 +50,7 @@ export function subscribeQuestionnaires(listener: () => void) {
 }
 
 export function useQuestionnaires(): Questionnaire[] {
-  const [items, setItems] = useState<Questionnaire[]>(seed)
+  const [items, setItems] = useState<Questionnaire[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

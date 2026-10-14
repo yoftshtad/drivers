@@ -93,16 +93,16 @@ export const questionBank: Question[] = [
 ]
 
 export const questionnaires: Questionnaire[] = [
-  { id: 'traffic-signs', moduleId: 'traffic-signs', title: 'Traffic Signs', description: 'Signs, signals and road markings.', questionCount: 120, timeLimitMin: 20, passMark: 70, mode: 'practice' },
-  { id: 'road-rules', moduleId: 'road-rules', title: 'Road Rules', description: 'Right of way, speed and regulations.', questionCount: 150, timeLimitMin: 25, passMark: 70, mode: 'practice' },
-  { id: 'defensive-driving', moduleId: 'defensive-driving', title: 'Defensive Driving', description: 'Hazard awareness and safe techniques.', questionCount: 100, timeLimitMin: 20, passMark: 70, mode: 'practice' },
-  { id: 'vehicle-knowledge', moduleId: 'vehicle-knowledge', title: 'Vehicle Knowledge', description: 'Vehicle components and safety equipment.', questionCount: 80, timeLimitMin: 15, passMark: 70, mode: 'practice' },
+  { id: 'traffic-signs', moduleId: 'traffic-signs', title: 'Traffic Signs', description: 'Signs, signals and road markings.', questionCount: 120, passMark: 70, mode: 'practice' },
+  { id: 'road-rules', moduleId: 'road-rules', title: 'Road Rules', description: 'Right of way, speed and regulations.', questionCount: 150, passMark: 70, mode: 'practice' },
+  { id: 'defensive-driving', moduleId: 'defensive-driving', title: 'Defensive Driving', description: 'Hazard awareness and safe techniques.', questionCount: 100, passMark: 70, mode: 'practice' },
+  { id: 'vehicle-knowledge', moduleId: 'vehicle-knowledge', title: 'Vehicle Knowledge', description: 'Vehicle components and safety equipment.', questionCount: 80, passMark: 70, mode: 'practice' },
 ]
 
 export const mockTests: Questionnaire[] = [
-  { id: 'mock-a', moduleId: 'random', title: 'Mock Test A', description: 'Full-length simulation of the official exam.', questionCount: 20, timeLimitMin: 25, passMark: 70, mode: 'mock' },
-  { id: 'mock-b', moduleId: 'random', title: 'Mock Test B', description: 'Timed mixed-topic exam simulation.', questionCount: 15, timeLimitMin: 20, passMark: 70, mode: 'mock' },
-  { id: 'mock-c', moduleId: 'random', title: 'Quick Mock Test C', description: 'Short exam simulation for a fast check-in.', questionCount: 10, timeLimitMin: 12, passMark: 70, mode: 'mock' },
+  { id: 'mock-a', moduleId: 'random', title: 'Mock Test A', description: 'Full-length simulation of the official exam.', questionCount: 20, passMark: 70, mode: 'mock' },
+  { id: 'mock-b', moduleId: 'random', title: 'Mock Test B', description: 'Mixed-topic exam simulation.', questionCount: 15, passMark: 70, mode: 'mock' },
+  { id: 'mock-c', moduleId: 'random', title: 'Quick Mock Test C', description: 'Short exam simulation for a fast check-in.', questionCount: 10, passMark: 70, mode: 'mock' },
 ]
 
 export const paymentHistory: PaymentRecord[] = [
