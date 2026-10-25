@@ -1,7 +1,7 @@
 import { createClient } from '@libsql/client'
 
-const url = process.env.TURSO_DATABASE_URL!
-const authToken = process.env.TURSO_AUTH_TOKEN!
+const url = process.env.TURSO_DATABASE_URL ?? process.env.TURSO_DATABASE_URL_2
+const authToken = process.env.TURSO_AUTH_TOKEN ?? process.env.TURSO_AUTH_TOKEN_2
 
 if (!url || !authToken) {
   throw new Error('TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be set')
