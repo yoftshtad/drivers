@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import { DASHBOARD_IMAGE, faqs } from './content'
 
 export function Logo({ inverse = false }: { inverse?: boolean }) {
-  return <a href="#top" className="flex items-center gap-2" aria-label="Drivio home"><span className={`flex size-8 items-center justify-center rounded-lg ${inverse ? 'bg-card text-primary' : 'bg-primary text-primary-foreground'}`}><span className="font-black">D</span></span><span className={`text-lg font-bold tracking-tight ${inverse ? 'text-primary-foreground' : 'text-foreground'}`}>drivio</span></a>
+  return <a href="#top" className="flex items-center gap-2" aria-label="Drivio home"><span className={`flex size-9 items-center justify-center rounded-lg ${inverse ? 'bg-card text-primary' : 'bg-primary text-primary-foreground'}`}><span className="font-black">D</span></span><span className={`text-lg font-black tracking-tight ${inverse ? 'text-primary-foreground' : 'text-foreground'}`}>drivio</span></a>
 }
 
 export function PlanPreview() {

@@ -48,20 +48,20 @@
 
 :root {
   color-scheme: light;
-  --background: oklch(0.988 0.008 285);
-  --foreground: oklch(0.12 0.018 285);
+  --background: oklch(0.985 0.006 180);
+  --foreground: oklch(0.16 0.035 255);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.19 0.025 255);
+  --card-foreground: oklch(0.16 0.035 255);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.025 255);
-  --primary: oklch(0.62 0.17 292);
-  --primary-foreground: oklch(0.99 0.01 285);
-  --secondary: oklch(0.945 0.035 285);
-  --secondary-foreground: oklch(0.36 0.12 292);
-  --muted: oklch(0.965 0.018 285);
-  --muted-foreground: oklch(0.46 0.035 285);
-  --accent: #9f86eb;
-  --accent-foreground: oklch(0.23 0.08 292);
+  --popover-foreground: oklch(0.16 0.035 255);
+  --primary: oklch(0.43 0.105 180);
+  --primary-foreground: oklch(0.99 0.01 180);
+  --secondary: oklch(0.94 0.035 180);
+  --secondary-foreground: oklch(0.34 0.08 180);
+  --muted: oklch(0.96 0.012 180);
+  --muted-foreground: oklch(0.46 0.025 255);
+  --accent: #f59e0b;
+  --accent-foreground: oklch(0.2 0.04 80);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.89 0.03 285);
   --input: oklch(0.89 0.03 285);
